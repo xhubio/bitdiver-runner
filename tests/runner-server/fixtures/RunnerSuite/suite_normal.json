@@ -1,0 +1,43 @@
+{
+  "name": "suite name",
+  "tags": [],
+  "steps": ["StepId_1", "StepId_2", "StepId_3"],
+  "stepDefinitions": {
+    "StepId_1": {
+      "id": "normal",
+      "name": "Step 1",
+      "description": "Desc 1"
+    },
+    "StepId_2": {
+      "id": "normal",
+      "name": "Step 2",
+      "description": "Desc 2"
+    },
+    "StepId_3": {
+      "id": "normal",
+      "name": "Step 3",
+      "description": "Desc 3"
+    }
+  },
+  "testcases": [
+    {
+      "name": "TC 1",
+      "description": "TC Desc 1",
+      "data": {
+        "StepId_1": "data TC 1 Step 1",
+        "StepId_2": "data TC 1 Step 2",
+        "StepId_3": "data TC 1 Step 3"
+      }
+    },
+    {
+      "name": "TC 2",
+      "description": "TC Desc 2",
+      "data": {
+        "StepId_1": "data TC 2 Step 1",
+        "StepId_2": "data TC 2 Step 2",
+        "StepId_3": "data TC 2 Step 3"
+      }
+    }
+  ],
+  "executionMode": "normal"
+}

@@ -1,0 +1,220 @@
+{
+  "TC 1": {
+    "logs": [],
+    "steps": {
+      "Step 1": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          }
+        ]
+      },
+      "Step 2": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          }
+        ]
+      },
+      "Step 3": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          }
+        ]
+      }
+    },
+    "countCurrent": 1,
+    "countAll": 2
+  },
+  "TC 2": {
+    "logs": [],
+    "steps": {
+      "Step 1": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 1,
+            "countAll": 3
+          }
+        ]
+      },
+      "Step 2": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 2,
+            "countAll": 3
+          }
+        ]
+      },
+      "Step 3": {
+        "logs": [
+          {
+            "data": { "message": "Step start" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step beforeRun" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step run" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step afterRun" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          },
+          {
+            "data": { "message": "Step end" },
+            "logLevel": "info",
+            "countCurrent": 3,
+            "countAll": 3
+          }
+        ]
+      }
+    },
+    "countCurrent": 2,
+    "countAll": 2
+  }
+}

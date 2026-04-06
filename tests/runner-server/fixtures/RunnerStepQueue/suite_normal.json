@@ -1,0 +1,20 @@
+{
+  "name": "suite name",
+  "tags": [],
+  "testcases": [
+    {
+      "name": "TC 1",
+      "description": "TC Desc 1",
+      "data": {}
+    }
+  ],
+  "steps": ["StepId_1"],
+  "stepDefinitions": {
+    "StepId_1": {
+      "id": "timerStep",
+      "name": "Step 1",
+      "description": "Desc 1"
+    }
+  },
+  "executionMode": "normal"
+}

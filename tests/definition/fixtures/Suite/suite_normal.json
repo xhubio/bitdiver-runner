@@ -1,0 +1,82 @@
+{
+  "name": "suite name",
+  "tags": [],
+  "steps": ["StepId_2", "StepId_8", "StepId_5", "StepId_9", "StepId_6", "StepId_10", "StepId_1"],
+  "stepDefinitions": {
+    "StepId_1": {
+      "id": "normal",
+      "name": "Step 1",
+      "description": "Desc 1"
+    },
+    "StepId_2": {
+      "id": "normal",
+      "name": "Step 2",
+      "description": "Desc 2"
+    },
+    "StepId_5": {
+      "id": "normal",
+      "name": "Step 5",
+      "description": "Desc 5"
+    },
+    "StepId_6": {
+      "id": "normal",
+      "name": "Step 6",
+      "description": "Desc 6"
+    },
+    "StepId_8": {
+      "id": "normal",
+      "name": "Step 8",
+      "description": "Desc 8"
+    },
+    "StepId_9": {
+      "id": "normal",
+      "name": "Step 9",
+      "description": "Desc 9"
+    },
+    "StepId_10": {
+      "id": "normal",
+      "name": "Step 10",
+      "description": "Desc 10"
+    }
+  },
+  "testcases": [
+    {
+      "name": "TC 1",
+      "description": "TC Desc 1",
+      "data": {
+        "StepId_2": "data TC 1 Step 1",
+        "StepId_8": "data TC 1 Step 2",
+        "StepId_5": "data TC 1 Step 3",
+        "StepId_9": "data TC 1 Step 4",
+        "StepId_6": "data TC 1 Step 5",
+        "StepId_10": "data TC 1 Step 7",
+        "StepId_1": "data TC 1 Step 8"
+      }
+    },
+    {
+      "name": "TC 2",
+      "description": "TC Desc 2",
+      "data": {
+        "StepId_6": "data TC 2 Step 9",
+        "StepId_8": "data TC 2 Step 10",
+        "StepId_9": "data TC 2 Step 11",
+        "StepId_10": "data TC 2 Step 12",
+        "StepId_5": "data TC 2 Step 13",
+        "StepId_1": "data TC 2 Step 14",
+        "StepId_2": "data TC 2 Step 17"
+      }
+    },
+    {
+      "name": "TC 3",
+      "description": "TC Desc 3",
+      "data": {
+        "StepId_2": "data TC 3 Step 18",
+        "StepId_8": "data TC 3 Step 19",
+        "StepId_1": "data TC 3 Step 20",
+        "StepId_5": "data TC 3 Step 26",
+        "StepId_10": "data TC 3 Step 27"
+      }
+    }
+  ],
+  "executionMode": "normal"
+}

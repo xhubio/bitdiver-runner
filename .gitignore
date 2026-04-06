@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+docApi/
+docTmp/
+log/
+store/
+testReports/
+*.js.map
+**/volatile/
