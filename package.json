@@ -1,6 +1,9 @@
 {
   "name": "@xhubio/bitdiver-runner",
   "version": "0.0.0-sematic-release",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
