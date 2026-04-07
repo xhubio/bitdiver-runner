@@ -5,7 +5,7 @@ on:
 
   push:
     branches-ignore:
-      - master
+      - main
 
 
 permissions:
