@@ -1,6 +1,5 @@
-import { EnvironmentRun, EnvironmentTestcase, StepSingle } from '../../src/model/index'
-
 import { getLogAdapterMemory } from '../../src/logadapter/index'
+import { EnvironmentRun, EnvironmentTestcase, StepSingle } from '../../src/model/index'
 
 const logAdapterMemory = getLogAdapterMemory({ logLevel: 'debug' })
 

@@ -5,14 +5,12 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-
-import { StepRegistry } from '../../src/model/index'
-
 import { getLogAdapterMemory } from '../../src/logadapter/index'
+import { StepRegistry } from '../../src/model/index'
 import { ProgressMeterBatch, Runner } from '../../src/runner-server/index'
+import { createSuite } from './helper/helper'
 import { StepNormalLocal } from './helper/StepNormalLocal'
 import { StepSingleLocal } from './helper/StepSingleLocal'
-import { createSuite } from './helper/helper'
 
 const VOLATILE = path.join(__dirname, 'volatile', 'RunnerAdvanced')
 const FIXTURES = path.join(__dirname, 'fixtures', 'RunnerAdvanced')
@@ -108,7 +106,7 @@ test(
     let expected = RESULT
     try {
       expected = JSON.parse(await fs.promises.readFile(fileNameExpected, 'utf8'))
-    } catch (e) {
+    } catch (_e) {
       await fs.promises.writeFile(fileNameExpected, JSON.stringify(RESULT, null, 2), 'utf8')
     }
 

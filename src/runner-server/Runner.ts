@@ -1,6 +1,4 @@
 import { v4 as uuidv4 } from 'uuid'
-import { type PromiseFactory, pAll } from './pAll'
-
 import {
   EXECUTION_MODE_BATCH,
   type ExecutionModeType,
@@ -9,18 +7,19 @@ import {
   type TestcaseDefinitionInterface
 } from '../definition/index'
 import {
+  getLogAdapterFile,
   LEVEL_ERROR,
   LEVEL_FATAL,
   LEVEL_INFO,
   LEVEL_WARNING,
   type LogAdapterInterface,
-  type LogMessageInterface,
-  getLogAdapterFile
+  type LogMessageInterface
 } from '../logadapter/index'
 import {
   DIR_BASE_DATA,
   EnvironmentRun,
   EnvironmentTestcase,
+  generateLogs,
   STATUS_ERROR,
   STATUS_FATAL,
   STATUS_OK,
@@ -30,13 +29,12 @@ import {
   type StepNormal,
   type StepRegistry,
   type StepSingle,
-  StepType,
-  generateLogs
+  StepType
 } from '../model/index'
-
-import { RunnerLogAdapter } from './RunnerLogAdapter'
+import { type PromiseFactory, pAll } from './pAll'
 import { ProgressMeterBatch } from './progress/ProgressMeterBatch'
 import { ProgressMeterNormal } from './progress/ProgressMeterNormal'
+import { RunnerLogAdapter } from './RunnerLogAdapter'
 
 /** Defnes how the step instances are executed.  */
 type stepExecutionMethodType = '_executeStepMethodParallel' | '_executeStepMethodOrdered'
@@ -504,7 +502,7 @@ export class Runner {
     stepInstance: StepBase,
     methods: string[]
   ): PromiseFactory<void> {
-    const asyncArray: Function[] = []
+    const asyncArray: (() => Promise<void>)[] = []
 
     for (const method of methods) {
       asyncArray.push(async () => {

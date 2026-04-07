@@ -1,8 +1,8 @@
 import type { StepDefinitionInterface } from '../../src/definition/index'
 import {
-  type LogAdapterMemory,
   getLogAdapterFile,
-  getLogAdapterMemory
+  getLogAdapterMemory,
+  type LogAdapterMemory
 } from '../../src/logadapter/index'
 import { Runner } from '../../src/runner-server/index'
 import { createRegistry, createSuite } from './helper/helper'

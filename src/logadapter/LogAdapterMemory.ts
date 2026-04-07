@@ -1,5 +1,5 @@
-import { LogAdapterConsole } from './LogAdapterConsole'
 import type { LogMessageInterface, LogMessageMetaInterface } from './interfaceLogMessage'
+import { LogAdapterConsole } from './LogAdapterConsole'
 
 export class LogAdapterMemory extends LogAdapterConsole {
   logs: any = {}

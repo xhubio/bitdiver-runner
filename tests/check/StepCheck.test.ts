@@ -245,7 +245,7 @@ describe('StepCheck', () => {
     const dataDir = await createDir('data')
     // do NOT create actualDir — this will cause an error in runCheck/mapFiles
 
-    const { step, envTc } = createStep()
+    const { step, envTc: _envTc } = createStep()
     const stepData: CheckStepData = {
       resultDir,
       dataDir,

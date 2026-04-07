@@ -1,7 +1,7 @@
+import { StepType } from './constants'
 import type { EnvironmentTestcase } from './EnvironmentTestcase'
 import { StepBase } from './StepBase'
 import { deleteVars, exportVars, loadVars, writeVars } from './StepPersistence'
-import { StepType } from './constants'
 
 /**
  * Typed view of a single testcase within a SingleStep.

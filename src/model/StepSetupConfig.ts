@@ -1,4 +1,4 @@
-import type { ZodObject, ZodRawShape, z } from 'zod'
+import type { ZodObject, ZodRawShape } from 'zod'
 import { deepMerge, loadConfig } from '../config/index'
 import { StepSingle } from './StepSingle'
 

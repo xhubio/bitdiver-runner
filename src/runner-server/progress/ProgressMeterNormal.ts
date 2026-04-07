@@ -46,11 +46,7 @@ export class ProgressMeterNormal {
   /**
    * Initializes the count of the test cases and steps
    */
-  init(request: {
-    testcaseCount: number
-    stepCount: number
-    name?: string
-  }): void {
+  init(request: { testcaseCount: number; stepCount: number; name?: string }): void {
     const { testcaseCount, stepCount, name } = request
 
     if (name !== undefined) {

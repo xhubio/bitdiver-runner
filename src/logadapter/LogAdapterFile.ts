@@ -1,10 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { LogAdapterConsole } from './LogAdapterConsole'
 import { DEFAULT_TIME_FORMAT_FILE } from './constants'
 import { getTimeString } from './getTimeString'
 import type { LogAdapterFileOptions } from './interfaceLogAdpaterOptions'
 import type { LogMessageInterface, LogMessageMetaInterface } from './interfaceLogMessage'
+import { LogAdapterConsole } from './LogAdapterConsole'
 import { getLogLevelName } from './logLevel'
 
 /**
@@ -151,7 +151,7 @@ export class LogAdapterFile extends LogAdapterConsole {
       try {
         await fs.promises.access(fileName, fs.constants.F_OK)
         fileIsOk = false
-      } catch (e) {
+      } catch (_e) {
         fileIsOk = true
       }
 

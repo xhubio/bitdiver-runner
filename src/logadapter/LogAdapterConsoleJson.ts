@@ -1,6 +1,6 @@
-import { LogAdapterConsole } from './LogAdapterConsole'
 import { getTimeString } from './getTimeString'
 import type { LogMessageInterface } from './interfaceLogMessage'
+import { LogAdapterConsole } from './LogAdapterConsole'
 
 /**
  * Implements a Logadaper whoch writes the log as JSON

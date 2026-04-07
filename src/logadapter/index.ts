@@ -1,8 +1,8 @@
+import type { LogAdapterOptions } from './interfaceLogAdpaterOptions'
 import { LogAdapterConsole } from './LogAdapterConsole'
 import { LogAdapterConsoleJson } from './LogAdapterConsoleJson'
 import { LogAdapterFile } from './LogAdapterFile'
 import { LogAdapterMemory } from './LogAdapterMemory'
-import type { LogAdapterOptions } from './interfaceLogAdpaterOptions'
 
 export { DEFAULT_TIME_FORMAT, DEFAULT_TIME_FORMAT_FILE } from './constants'
 export { LogAdapterInterface } from './interfaceLogAdapter'
@@ -11,17 +11,16 @@ export {
   LogMessageMetaInterface,
   LogMessageSourceInterface
 } from './interfaceLogMessage'
-export { LogAdapterConsole, LogAdapterConsoleJson, LogAdapterMemory, LogAdapterFile }
-
 export {
+  getLogLevelName,
+  getLogLevelNumber,
   LEVEL_DEBUG,
-  LEVEL_INFO,
-  LEVEL_WARNING,
   LEVEL_ERROR,
   LEVEL_FATAL,
-  getLogLevelNumber,
-  getLogLevelName
+  LEVEL_INFO,
+  LEVEL_WARNING
 } from './logLevel'
+export { LogAdapterConsole, LogAdapterConsoleJson, LogAdapterFile, LogAdapterMemory }
 
 // Stores the logger instance
 let logAdapterConsole: LogAdapterConsole
@@ -68,4 +67,5 @@ function getLogAdapterFile(opts?: LogAdapterOptions): LogAdapterFile {
   }
   return logAdapterFile
 }
-export { getLogAdapterConsole, getLogAdapterConsoleJson, getLogAdapterMemory, getLogAdapterFile }
+
+export { getLogAdapterConsole, getLogAdapterConsoleJson, getLogAdapterFile, getLogAdapterMemory }

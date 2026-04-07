@@ -2,10 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { getLogAdapterMemory } from '../../src/logadapter/index'
+import type { StepBase } from '../../src/model/index'
 import { Runner } from '../../src/runner-server/index'
 import { createRegistry } from './helper/helper'
-
-import type { StepBase } from '../../src/model/index'
 import { StepTestQueue } from './helper/StepTestQueue'
 
 const logAdapter = getLogAdapterMemory()
@@ -32,12 +31,12 @@ test(
     const methods = ['beforeRun', 'run', 'afterRun']
     const stepInstances = createSteps(5)
 
-    const startTime: number = new Date().valueOf()
+    const startTime: number = Date.now()
 
     // biome-ignore lint/complexity/useLiteralKeys: bracket access needed for protected method
     await runner['_executeStepMethodParallel'](stepInstances, methods)
 
-    const endTime: number = new Date().valueOf()
+    const endTime: number = Date.now()
     expect(endTime - startTime).toBeLessThan(6 * 1000)
     expect(endTime - startTime).toBeGreaterThan(4 * 1000)
   },

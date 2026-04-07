@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { StepNormal } from '../model/StepNormal'
 import { STATUS_ERROR } from '../model/constants'
+import { StepNormal } from '../model/StepNormal'
 import { runCheck } from './runCheck'
 import type { CheckResult, CheckStepData } from './types'
 

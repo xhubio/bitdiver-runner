@@ -1,6 +1,6 @@
 import fs from 'node:fs'
+import { glob } from 'node:fs/promises'
 import path from 'node:path'
-import globby from 'globby'
 import { DateTime } from 'luxon'
 import { DEFAULT_TIME_FORMAT_FILE, LogAdapterFile } from '../../src/logadapter/index'
 import { getDefaultLogMessage } from './helper'
@@ -35,7 +35,10 @@ test('Log Message Run', async () => {
   const fileName = `${DateTime.fromMillis(timeNow).toFormat(DEFAULT_TIME_FORMAT_FILE)}`
 
   const rootGlob = path.join(LOG_PATH, `${suiteName}/**/*.json`)
-  const files = await globby([rootGlob])
+  const files: string[] = []
+  for await (const f of glob(rootGlob)) {
+    files.push(f)
+  }
 
   expect(files.length).toBe(1)
   for (let i = 0; i < files.length; i++) {
@@ -69,7 +72,10 @@ test('Log Message Testcase', async () => {
   const fileName = `${DateTime.fromMillis(timeNow).toFormat(DEFAULT_TIME_FORMAT_FILE)}`
 
   const rootGlob = path.join(LOG_PATH, `${suiteName}/**/*.json`)
-  const files = await globby([rootGlob])
+  const files: string[] = []
+  for await (const f of glob(rootGlob)) {
+    files.push(f)
+  }
 
   expect(files.length).toBe(1)
   for (let i = 0; i < files.length; i++) {
@@ -101,7 +107,10 @@ test('Log Message Step', async () => {
   const fileName = `${DateTime.fromMillis(timeNow).toFormat(DEFAULT_TIME_FORMAT_FILE)}`
 
   const rootGlob = path.join(LOG_PATH, `${suiteName}/**/*.json`)
-  const files = await globby([rootGlob])
+  const files: string[] = []
+  for await (const f of glob(rootGlob)) {
+    files.push(f)
+  }
 
   expect(files.length).toBe(1)
   for (let i = 0; i < files.length; i++) {

@@ -30,11 +30,7 @@ export class ProgressBarConsoleBatch extends ProgressMeterBatch {
     this._printFooter()
   }
 
-  init(request: {
-    testcaseCount: number
-    stepCount: number
-    name?: string
-  }): void {
+  init(request: { testcaseCount: number; stepCount: number; name?: string }): void {
     super.init(request)
 
     this._printHeader()

@@ -1,7 +1,11 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
-  "organizeImports": {
-    "enabled": true
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "formatter": {
     "enabled": true,
@@ -21,8 +25,7 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "noForEach": "off",
-        "noBannedTypes": "off"
+        "noForEach": "off"
       },
       "performance": {
         "noDelete": "off"
@@ -39,12 +42,18 @@
         "noNonNullAssertion": "off",
         "noParameterAssign": "off",
         "noUselessElse": "off",
-        "useConst": "error",
-        "noVar": "error"
+        "useConst": "error"
       }
     }
   },
   "files": {
-    "ignore": ["dist/**", "coverage/**", "node_modules/**", "**/volatile/**"]
+    "includes": [
+      "src/**",
+      "tests/**",
+      "!**/dist",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/volatile"
+    ]
   }
 }

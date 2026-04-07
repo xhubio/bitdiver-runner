@@ -128,7 +128,7 @@ function collectPaths(schema: ZodObject<ZodRawShape>, prefix: string[] = []): st
     // Unwrap optional, default, nullable wrappers to get to the inner type
     const inner = unwrapZodType(value)
 
-    if (inner._def?.typeName === 'ZodObject') {
+    if (inner._def?.type === 'object') {
       paths.push(...collectPaths(inner as ZodObject<ZodRawShape>, currentPath))
     } else {
       paths.push(currentPath.join('.'))
@@ -144,9 +144,9 @@ function collectPaths(schema: ZodObject<ZodRawShape>, prefix: string[] = []): st
 function unwrapZodType(zodType: any): any {
   let current = zodType
   while (
-    current._def?.typeName === 'ZodOptional' ||
-    current._def?.typeName === 'ZodDefault' ||
-    current._def?.typeName === 'ZodNullable'
+    current._def?.type === 'optional' ||
+    current._def?.type === 'default' ||
+    current._def?.type === 'nullable'
   ) {
     current = current._def.innerType
   }

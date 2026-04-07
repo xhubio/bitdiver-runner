@@ -1,17 +1,16 @@
 import { v4 as uuidv4 } from 'uuid'
 import {
+  getLogAdapterConsole,
   LEVEL_DEBUG,
   LEVEL_ERROR,
   LEVEL_FATAL,
   LEVEL_INFO,
   LEVEL_WARNING,
-  type LogAdapterInterface,
-  getLogAdapterConsole
+  type LogAdapterInterface
 } from '../logadapter/index'
-
+import { StepType } from './constants'
 import type { EnvironmentRun } from './EnvironmentRun'
 import type { EnvironmentTestcase } from './EnvironmentTestcase'
-import { StepType } from './constants'
 import { generateLogs } from './generateLogs'
 import type { StepOptions } from './interfaceStepOptions'
 

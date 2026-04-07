@@ -1,4 +1,8 @@
 import {
+  // LogAdapterFile,
+  getLogAdapterConsole,
+  getLogAdapterFile,
+  getLogAdapterMemory,
   LEVEL_DEBUG,
   LEVEL_ERROR,
   LEVEL_FATAL,
@@ -6,11 +10,7 @@ import {
   LEVEL_WARNING,
   LogAdapterConsole,
   LogAdapterConsoleJson,
-  LogAdapterMemory,
-  // LogAdapterFile,
-  getLogAdapterConsole,
-  getLogAdapterFile,
-  getLogAdapterMemory
+  LogAdapterMemory
 } from '../../src/logadapter/index'
 
 test('LEVEL_DEBUG', () => {

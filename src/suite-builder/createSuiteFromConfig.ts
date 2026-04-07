@@ -1,15 +1,12 @@
 import fs from 'node:fs/promises'
-import path from 'node:path'
 import type {
   StepDefinitionInterface,
   SuiteDefinitionInterface,
   TestcaseDefinitionInterface
 } from '../definition/index'
 import { buildTimedSteps } from './buildTimedSteps'
-import type { TimedStepEntry } from './buildTimedSteps'
 import { scanTimedFiles } from './scanTimedFiles'
 import { suiteConfigSchema } from './types'
-import type { SuiteConfig } from './types'
 
 export interface CreateSuiteFromConfigRequest {
   /** The suite configuration (parsed YAML/JSON) */

@@ -1,1 +1,1 @@
-export { loadConfig, deepMerge, type LoadConfigRequest, type LoadConfigResult } from './loadConfig'
+export { deepMerge, type LoadConfigRequest, type LoadConfigResult, loadConfig } from './loadConfig'

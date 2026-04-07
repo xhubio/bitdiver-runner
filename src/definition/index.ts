@@ -1,9 +1,9 @@
 export { StepDefinitionInterface } from './interfaceStepDefinition'
-export { TestcaseDefinitionInterface } from './interfaceTestcaseDefinition'
 export {
-  SuiteDefinitionInterface,
-  ExecutionModeType,
   EXECUTION_MODE_BATCH,
-  EXECUTION_MODE_NORMAL
+  EXECUTION_MODE_NORMAL,
+  ExecutionModeType,
+  SuiteDefinitionInterface
 } from './interfaceSuiteDefinition'
+export { TestcaseDefinitionInterface } from './interfaceTestcaseDefinition'
 export { validate } from './schema/validate'
