@@ -6,7 +6,7 @@ import type {
 } from '../definition/index'
 import { buildTimedSteps } from './buildTimedSteps'
 import { scanTimedFiles } from './scanTimedFiles'
-import { suiteConfigSchema } from './types'
+import { normalizeTimedStepMapping, suiteConfigSchema } from './types'
 
 export interface CreateSuiteFromConfigRequest {
   /** The suite configuration (parsed YAML/JSON) */
@@ -73,8 +73,9 @@ export async function createSuiteFromConfig(
 
   // Phase 2: Timed steps
   if (typeConfig.timed === 'auto') {
-    const timedFiles = await scanTimedFiles(testDataDir, testcaseNames)
-    const timedEntries = buildTimedSteps(timedFiles, config.timedStepMapping)
+    const mappingEntries = normalizeTimedStepMapping(config.timedStepMapping)
+    const timedFiles = await scanTimedFiles(testDataDir, testcaseNames, mappingEntries)
+    const timedEntries = buildTimedSteps(timedFiles, mappingEntries)
 
     for (const entry of timedEntries) {
       stepDefinitions[entry.definition.name] = entry.definition

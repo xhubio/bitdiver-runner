@@ -1,7 +1,33 @@
 import { z } from 'zod'
 
-/** Mapping from file-name type to stepId for timed steps */
-const timedStepMappingSchema = z.record(z.string(), z.string())
+/**
+ * A timed step mapping entry can be:
+ * - A simple string (stepId) → uses default pattern: <TIME>_<key>_*.json
+ * - An object with stepId and custom pattern containing <TIME> placeholder
+ *
+ * The <TIME> placeholder is replaced with (\d+) in the regex.
+ *
+ * @example
+ * ```json
+ * {
+ *   "ri-fahrt-v1": "SendRiFahrtV1Time",
+ *   "custom": {
+ *     "stepId": "SendCustomTime",
+ *     "pattern": "data_rifahrt_.*_<TIME>\\.json"
+ *   }
+ * }
+ * ```
+ */
+const timedStepMappingEntrySchema = z.union([
+  z.string(),
+  z.object({
+    stepId: z.string(),
+    pattern: z.string()
+  })
+])
+
+/** Mapping from key to stepId (simple) or { stepId, pattern } (custom) */
+const timedStepMappingSchema = z.record(z.string(), timedStepMappingEntrySchema)
 
 /** Suite type phase definition */
 const suiteTypeSchema = z.object({
@@ -32,6 +58,54 @@ export const suiteConfigSchema = z.object({
 
 export type SuiteConfig = z.infer<typeof suiteConfigSchema>
 export type SuiteTypeConfig = z.infer<typeof suiteTypeSchema>
+
+/** Normalized timed step mapping entry */
+export interface TimedStepMappingEntry {
+  /** The key used to identify this mapping */
+  key: string
+  /** The step ID to register in the suite */
+  stepId: string
+  /** Regex pattern with a single capture group for the time value */
+  regex: RegExp
+}
+
+/**
+ * Normalize the timedStepMapping config into a list of entries with compiled regexes.
+ * - Simple string value: uses default pattern `^<TIME>_<key>_`
+ * - Object with pattern: replaces `<TIME>` with `(\d+)` and compiles
+ */
+export function normalizeTimedStepMapping(
+  mapping: Record<string, string | { stepId: string; pattern: string }>
+): TimedStepMappingEntry[] {
+  const entries: TimedStepMappingEntry[] = []
+
+  for (const [key, value] of Object.entries(mapping)) {
+    if (typeof value === 'string') {
+      // Simple: key is the type, value is the stepId
+      // Default pattern: <TIME>_<key>_*
+      entries.push({
+        key,
+        stepId: value,
+        regex: new RegExp(`^(\\d+)_${escapeRegex(key)}_`)
+      })
+    } else {
+      // Object with custom pattern
+      const regexStr = value.pattern.replace('<TIME>', '(\\d+)')
+      entries.push({
+        key,
+        stepId: value.stepId,
+        regex: new RegExp(regexStr)
+      })
+    }
+  }
+
+  return entries
+}
+
+/** Escape special regex characters in a string */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 /** Parsed file name from test data: <time>_<type>_<rest>.json */
 export interface ParsedFileName {

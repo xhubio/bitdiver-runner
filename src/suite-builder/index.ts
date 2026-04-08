@@ -2,8 +2,10 @@ export { buildTimedSteps, type TimedStepEntry } from './buildTimedSteps'
 export { type CreateSuiteFromConfigRequest, createSuiteFromConfig } from './createSuiteFromConfig'
 export { scanTimedFiles } from './scanTimedFiles'
 export {
+  normalizeTimedStepMapping,
   type ParsedFileName,
   type SuiteConfig,
   type SuiteTypeConfig,
-  suiteConfigSchema
+  suiteConfigSchema,
+  type TimedStepMappingEntry
 } from './types'

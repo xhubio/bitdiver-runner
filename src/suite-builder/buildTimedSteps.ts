@@ -1,5 +1,5 @@
 import type { StepDefinitionInterface } from '../definition/index'
-import type { ParsedFileName } from './types'
+import type { ParsedFileName, TimedStepMappingEntry } from './types'
 
 export interface TimedStepEntry {
   /** The step definition (id + unique name) */
@@ -9,7 +9,7 @@ export interface TimedStepEntry {
 }
 
 /**
- * Build timed step entries from scanned files and a type→stepId mapping.
+ * Build timed step entries from scanned files and mapping entries.
  *
  * Groups files by time, then by type. For each time+type combination,
  * creates a step with a unique name like "SendRiFahrtV1Time 120".
@@ -17,14 +17,20 @@ export interface TimedStepEntry {
  * Steps are sorted by time (ascending).
  *
  * @param files - All parsed file names from scanTimedFiles
- * @param mapping - Map from file-type to stepId (e.g. 'ri-fahrt-v1' → 'SendRiFahrtV1Time')
+ * @param mappingEntries - Normalized mapping entries with stepId per type key
  * @returns Ordered list of timed step entries
  */
 export function buildTimedSteps(
   files: ParsedFileName[],
-  mapping: Record<string, string>
+  mappingEntries: TimedStepMappingEntry[]
 ): TimedStepEntry[] {
-  const byTime = groupFilesByTimeAndType(files, mapping)
+  // Build a quick lookup: type key → stepId
+  const stepIdByKey = new Map<string, string>()
+  for (const entry of mappingEntries) {
+    stepIdByKey.set(entry.key, entry.stepId)
+  }
+
+  const byTime = groupFilesByTimeAndType(files, stepIdByKey)
   const sortedTimes = [...byTime.keys()].sort((a, b) => a - b)
 
   const entries: TimedStepEntry[] = []
@@ -32,7 +38,10 @@ export function buildTimedSteps(
     const byType = byTime.get(time)!
     const sortedTypes = [...byType.keys()].sort()
     for (const type of sortedTypes) {
-      entries.push(buildEntryForType(time, byType.get(type)!, mapping[type]))
+      const stepId = stepIdByKey.get(type)
+      if (stepId) {
+        entries.push(buildEntryForType(time, byType.get(type)!, stepId))
+      }
     }
   }
   return entries
@@ -40,11 +49,11 @@ export function buildTimedSteps(
 
 function groupFilesByTimeAndType(
   files: ParsedFileName[],
-  mapping: Record<string, string>
+  stepIdByKey: Map<string, string>
 ): Map<number, Map<string, ParsedFileName[]>> {
   const byTime = new Map<number, Map<string, ParsedFileName[]>>()
   for (const file of files) {
-    if (!mapping[file.type]) continue
+    if (!stepIdByKey.has(file.type)) continue
     if (!byTime.has(file.time)) byTime.set(file.time, new Map())
     const byType = byTime.get(file.time)!
     if (!byType.has(file.type)) byType.set(file.type, [])

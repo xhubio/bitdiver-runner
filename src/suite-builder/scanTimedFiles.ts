@@ -1,22 +1,24 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { ParsedFileName } from './types'
+import type { ParsedFileName, TimedStepMappingEntry } from './types'
 
 /**
- * Scans all testcase directories for files with time-prefixed names.
- * Pattern: <number>_<type>_<rest>.json
- * Example: 120_ri-fahrt-v1_23711_S8.json → { time: 120, type: 'ri-fahrt-v1', ... }
+ * Scans all testcase directories for files matching the timed step patterns.
+ *
+ * Each mapping entry has a regex with a capture group for the time value.
+ * Files are matched against all patterns. The first match wins.
  *
  * @param testDataDir - Root directory containing testcase subdirectories
  * @param testcaseNames - List of testcase directory names
+ * @param mappingEntries - Normalized mapping entries with compiled regexes
  * @returns Flat list of all parsed file names across all testcases
  */
 export async function scanTimedFiles(
   testDataDir: string,
-  testcaseNames: string[]
+  testcaseNames: string[],
+  mappingEntries: TimedStepMappingEntry[]
 ): Promise<ParsedFileName[]> {
   const results: ParsedFileName[] = []
-  const timeTypePattern = /^(\d+)_([^_]+)_/
 
   for (const tcName of testcaseNames) {
     const tcDir = path.join(testDataDir, tcName)
@@ -28,13 +30,10 @@ export async function scanTimedFiles(
     }
 
     for (const fileName of entries) {
-      const match = fileName.match(timeTypePattern)
-      if (match) {
+      const parsed = matchFile(fileName, tcName, mappingEntries)
+      if (parsed) {
         results.push({
-          time: Number.parseInt(match[1], 10),
-          type: match[2],
-          fileName,
-          testcaseName: tcName,
+          ...parsed,
           relativePath: path.join(tcName, fileName)
         })
       }
@@ -42,4 +41,27 @@ export async function scanTimedFiles(
   }
 
   return results
+}
+
+/**
+ * Try to match a filename against all mapping entries.
+ * Returns the first match, or undefined if no pattern matches.
+ */
+function matchFile(
+  fileName: string,
+  testcaseName: string,
+  mappingEntries: TimedStepMappingEntry[]
+): Omit<ParsedFileName, 'relativePath'> | undefined {
+  for (const entry of mappingEntries) {
+    const match = fileName.match(entry.regex)
+    if (match?.[1]) {
+      return {
+        time: Number.parseInt(match[1], 10),
+        type: entry.key,
+        fileName,
+        testcaseName
+      }
+    }
+  }
+  return undefined
 }
