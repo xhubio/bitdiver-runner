@@ -31,6 +31,15 @@ const sampleConfig = {
       setup: ['SetupStep'],
       timed: [],
       teardown: ['CleanupStep']
+    },
+    TIMED_WITH_CONFIG: {
+      setup: ['SetupStep'],
+      timed: 'auto',
+      teardown: ['CleanupStep'],
+      timing: {
+        startAfterStep: 'SetupStep',
+        testcaseDelaySeconds: 0.2
+      }
     }
   }
 }
@@ -260,5 +269,64 @@ describe('createSuiteFromConfig', () => {
     for (const stepName of suite.steps) {
       expect(suite.stepDefinitions[stepName]).toBeDefined()
     }
+  })
+
+  test('timed step definitions have timing.offsetSeconds set', async () => {
+    const suite = await createSuiteFromConfig({
+      config: sampleConfig,
+      suiteType: 'TEST_FIX',
+      testDataDir: VOLATILE_DIR,
+      suiteName: 'My Suite'
+    })
+
+    const timedStepDef1 = suite.stepDefinitions['SendRiFahrtV1Time 1']
+    expect(timedStepDef1).toBeDefined()
+    expect(timedStepDef1.timing).toBeDefined()
+    expect(timedStepDef1.timing?.offsetSeconds).toBe(1)
+
+    const timedStepDef120 = suite.stepDefinitions['SendRiFahrtV1Time 120']
+    expect(timedStepDef120).toBeDefined()
+    expect(timedStepDef120.timing?.offsetSeconds).toBe(120)
+
+    const timedStepDef300 = suite.stepDefinitions['SendRiFahrtV1Time 300']
+    expect(timedStepDef300).toBeDefined()
+    expect(timedStepDef300.timing?.offsetSeconds).toBe(300)
+  })
+
+  test('setup and teardown step definitions do not have timing', async () => {
+    const suite = await createSuiteFromConfig({
+      config: sampleConfig,
+      suiteType: 'TEST_FIX',
+      testDataDir: VOLATILE_DIR,
+      suiteName: 'My Suite'
+    })
+
+    expect(suite.stepDefinitions.SetupStep.timing).toBeUndefined()
+    expect(suite.stepDefinitions.LoginStep.timing).toBeUndefined()
+    expect(suite.stepDefinitions.CleanupStep.timing).toBeUndefined()
+  })
+
+  test('suite.timing is set from config when timing is provided', async () => {
+    const suite = await createSuiteFromConfig({
+      config: sampleConfig,
+      suiteType: 'TIMED_WITH_CONFIG',
+      testDataDir: VOLATILE_DIR,
+      suiteName: 'Timed Suite'
+    })
+
+    expect(suite.timing).toBeDefined()
+    expect(suite.timing?.startAfterStep).toBe('SetupStep')
+    expect(suite.timing?.testcaseDelaySeconds).toBe(0.2)
+  })
+
+  test('suite.timing is undefined when not configured', async () => {
+    const suite = await createSuiteFromConfig({
+      config: sampleConfig,
+      suiteType: 'TEST_FIX',
+      testDataDir: VOLATILE_DIR,
+      suiteName: 'My Suite'
+    })
+
+    expect(suite.timing).toBeUndefined()
   })
 })

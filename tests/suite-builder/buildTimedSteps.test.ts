@@ -44,6 +44,7 @@ describe('buildTimedSteps', () => {
     expect(result).toHaveLength(1)
     expect(result[0].definition.name).toBe('SendRiFahrtV1Time 120')
     expect(result[0].definition.id).toBe('SendRiFahrtV1Time')
+    expect(result[0].definition.timing).toEqual({ offsetSeconds: 120 })
   })
 
   test('sorts by time ascending', () => {
@@ -103,5 +104,16 @@ describe('buildTimedSteps', () => {
     const files: ParsedFileName[] = [makeFile(10, 'ri-fahrt-v1', 'TC_01', '10_ri-fahrt-v1_x.json')]
     const result = buildTimedSteps(files, mapping)
     expect(result[0].definition.description).toBe('')
+  })
+
+  test('timing.offsetSeconds matches the file time offset', () => {
+    const files: ParsedFileName[] = [
+      makeFile(300, 'ri-fahrt-v1', 'TC_01', '300_ri-fahrt-v1_a.json'),
+      makeFile(1, 'ri-fahrt-v1', 'TC_01', '1_ri-fahrt-v1_b.json')
+    ]
+    const result = buildTimedSteps(files, mapping)
+    // sorted ascending: time=1 first, time=300 second
+    expect(result[0].definition.timing).toEqual({ offsetSeconds: 1 })
+    expect(result[1].definition.timing).toEqual({ offsetSeconds: 300 })
   })
 })

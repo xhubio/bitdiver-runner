@@ -59,7 +59,8 @@ export function buildTimedSteps(
       const definition: StepDefinitionInterface = {
         id: stepId,
         name: stepName,
-        description: ''
+        description: '',
+        timing: { offsetSeconds: time }
       }
 
       // Group files by testcase

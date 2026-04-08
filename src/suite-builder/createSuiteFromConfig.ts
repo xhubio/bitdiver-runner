@@ -108,7 +108,8 @@ export async function createSuiteFromConfig(
     executionMode,
     steps: stepOrder,
     stepDefinitions,
-    testcases
+    testcases,
+    timing: typeConfig.timing
   }
 }
 

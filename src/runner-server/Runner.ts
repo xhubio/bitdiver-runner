@@ -4,6 +4,7 @@ import {
   type ExecutionModeType,
   type StepDefinitionInterface,
   type SuiteDefinitionInterface,
+  type SuiteTimingInterface,
   type TestcaseDefinitionInterface
 } from '../definition/index'
 import {
@@ -150,6 +151,12 @@ export class Runner {
   /** Log adapter that intercepts step logs for status management */
   private runnerLogAdapter: RunnerLogAdapter
 
+  /** Reference time for timed steps (set after startAfterStep completes), in milliseconds */
+  private referenceTime?: number
+
+  /** Timing configuration from suite */
+  private timing?: SuiteTimingInterface
+
   constructor(opts: RunnerOptions) {
     this.dataDirectory = opts.dataDirectory ? opts.dataDirectory : ''
 
@@ -185,6 +192,7 @@ export class Runner {
     this.stepDefinitions = opts.suite.stepDefinitions
     this.testcases = opts.suite.testcases
     this.executionMode = opts.suite.executionMode
+    this.timing = opts.suite.timing
 
     this._createEnvironments(opts.suite)
   }
@@ -301,6 +309,14 @@ export class Runner {
 
       this.progressMeterBatch.incStep(stepDefinition.name)
 
+      // Wait for timed steps before building the step instances
+      if (stepDefinition.timing && this.referenceTime !== undefined) {
+        const delay = this._calculateTimingDelay(stepDefinition.timing.offsetSeconds)
+        if (delay > 0 && !this.testMode) {
+          await new Promise<void>((resolve) => setTimeout(resolve, delay))
+        }
+      }
+
       if (step.type === StepType.single) {
         // Single Step
         const singleStep: StepSingle = this.stepRegistry.getStep(stepDefinition.id) as StepSingle
@@ -374,10 +390,32 @@ export class Runner {
       }
 
       if (steps.length > 0) {
-        await this._executeSteps(steps)
+        // For timed steps with testcase delay: execute testcases sequentially with stagger
+        if (
+          stepDefinition.timing &&
+          this.timing?.testcaseDelaySeconds &&
+          this.timing.testcaseDelaySeconds > 0 &&
+          step.type !== StepType.single
+        ) {
+          const delayMs = this.timing.testcaseDelaySeconds * 1000
+          for (let i = 0; i < steps.length; i++) {
+            if (i > 0 && !this.testMode) {
+              await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+            }
+            await this._executeSteps([steps[i]])
+          }
+        } else {
+          await this._executeSteps(steps)
+        }
       } else {
         // eslint-disable-next-line no-console
         console.log(`No instance of step '${step.name}'`)
+      }
+
+      // Set reference time after the configured step
+      if (this.timing && stepId === this.timing.startAfterStep) {
+        this.referenceTime = Date.now()
+        await this._logInfo(`Reference time set after step '${stepId}'`)
       }
     }
 
@@ -807,5 +845,33 @@ export class Runner {
       }
     }
     return true
+  }
+
+  /**
+   * Calculate the delay in milliseconds until a timed step should execute.
+   * Returns 0 if referenceTime is not yet set.
+   * @param offsetSeconds - Seconds after the reference time when the step should execute
+   * @returns delay - Milliseconds to wait (minimum 0)
+   */
+  protected _calculateTimingDelay(offsetSeconds: number): number {
+    if (this.referenceTime === undefined) return 0
+    const targetTime = this.referenceTime + offsetSeconds * 1000
+    return Math.max(0, targetTime - Date.now())
+  }
+
+  /**
+   * Logs an info message on the run level (not tied to a specific testcase)
+   * @param message - The message to log
+   */
+  protected async _logInfo(message: string): Promise<void> {
+    if (this.environmentRun === undefined) {
+      throw new Error('The EnvironmentRun is undefined')
+    }
+    await generateLogs({
+      environmentRun: this.environmentRun,
+      logAdapter: this.logAdapter,
+      messageObj: { message },
+      logLevelString: LEVEL_INFO
+    })
   }
 }

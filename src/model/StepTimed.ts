@@ -2,6 +2,10 @@ import { DateTime } from 'luxon'
 import { StepNormal } from './StepNormal'
 
 /**
+ * @deprecated The Runner now handles timing directly via `timing.offsetSeconds` in the
+ * StepDefinition and `timing.startAfterStep` in the SuiteDefinition. Use StepNormal instead
+ * and configure timing through the suite/step definitions.
+ *
  * A step that waits until a specific time offset before executing.
  *
  * The offset is relative to a reference time (e.g. test start time).

@@ -1,23 +1,24 @@
 # @xhubio/bitdiver-runner
 
-Test execution framework for automated end-to-end tests. Runs tests as suites with steps, compares results and provides structured reporting.
+Test-Execution-Framework fuer automatisierte End-to-End Tests. Fuehrt Tests als Suites mit Steps aus, vergleicht Ergebnisse und liefert strukturiertes Reporting.
 
 ## Quickstart
 
 ```bash
-npm install
-npm run build     # biome check + tsc
-npm run test      # build + vitest
-npm run test:only # tests only (no build)
+pnpm install
+pnpm run build     # biome check + tsc
+pnpm run test      # build + vitest
+pnpm run test:only # nur tests (ohne build)
 ```
 
-## Architecture
+## Architektur
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Suite-Config (YAML/JSON)              │
 │    setup: [Step1, Step2]                                │
-│    timed: auto (scans test data files)                  │
+│    timed: auto (scannt Testdaten-Dateien)               │
+│    timing: { startAfterStep, testcaseDelaySeconds }     │
 │    teardown: [CheckStep, ReportStep]                    │
 └──────────────────────┬──────────────────────────────────┘
                        │
@@ -27,28 +28,29 @@ npm run test:only # tests only (no build)
 ┌─────────────────────────────────────────────────────────┐
 │                   suite.json                            │
 │  steps: ["Step1", "Step2", "SendData 120", "CheckStep"] │
-│  stepDefinitions: { "Step1": {id, name, desc}, ... }    │
-│  testcases: [{ name: "TC1", data: { "Step1": {...} } }] │
+│  stepDefinitions: { "SendData 120": { timing: {120} } } │
+│  timing: { startAfterStep: "Step2", delay: 0.2 }       │
+│  testcases: [{ name: "TC1", data: { ... } }]           │
 └──────────────────────┬──────────────────────────────────┘
                        │
                     Runner
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
-      StepNormal   StepSingle   StepTimed
-      (1x per TC)  (1x for      (waits for
-                    all TCs)     timestamp)
+      StepNormal   StepSingle   Timed Steps
+      (1x pro TC)  (1x fuer     (Runner wartet
+                    alle TCs)    auf Zeitpunkt)
 ```
 
-## Modules
+## Module
 
-### config — Configuration Management
+### config — Konfigurationsmanagement
 
-Loads configuration from JSON files with environment variable overrides and Zod validation.
+Laedt Konfiguration aus JSON-Dateien mit Environment-Variable-Overrides und Zod-Validierung.
 
 ```typescript
 import { z } from 'zod'
-import { loadConfig } from '@bitdiver/core'
+import { loadConfig } from '@xhubio/bitdiver-runner'
 
 const schema = z.object({
   database: z.object({
@@ -66,26 +68,26 @@ const { config, toString } = await loadConfig({
   secrets: ['database.password']
 })
 
-console.log(toString())     // password masked as ***
-console.log(config.debug)   // boolean, typed
+console.log(toString())     // password als *** maskiert
+console.log(config.debug)   // boolean, typisiert
 ```
 
-**Priority (highest wins):**
-1. Environment variables (`MYAPP_DATABASE_URL`)
-2. Inline values
-3. JSON file
-4. Schema defaults
+**Prioritaet (hoechste gewinnt):**
+1. Environment-Variablen (`MYAPP_DATABASE_URL`)
+2. Inline-Values
+3. JSON-Datei
+4. Schema-Defaults
 
-**Env variable naming convention:**
-`<prefix>_<PATH_IN_UPPER_SNAKE_CASE>` — e.g. `database.maxConnections` becomes `MYAPP_DATABASE_MAX_CONNECTIONS`.
+**Env-Variable-Namenskonvention:**
+`<prefix>_<PFAD_IN_UPPER_SNAKE_CASE>` — z.B. `database.maxConnections` wird zu `MYAPP_DATABASE_MAX_CONNECTIONS`.
 
 ---
 
-### suite-builder — Declarative Suite Creation
+### suite-builder — Deklarative Suite-Erstellung
 
-Creates suites from a YAML/JSON configuration instead of code.
+Erstellt Suites aus einer YAML/JSON-Konfiguration statt aus Code.
 
-#### Suite Config Format
+#### Suite-Config Format
 
 ```yaml
 timedStepMapping:
@@ -98,33 +100,53 @@ suiteTypes:
     setup:
       - SetupEnvironmentRun
       - ClearDatabase
-      - SetStartTime
+      - CheckStartTime
+    timing:
+      startAfterStep: CheckStartTime
+      testcaseDelaySeconds: 0.2
     timed: auto
     teardown:
       - ExportResults
       - CheckResults
       - StoreArtifacts
-
-  ONLY_RIDES:
-    setup:
-      - SetupEnvironmentRun
-      - SetStartTime
-    timed: auto
-    teardown:
-      - StoreArtifacts
 ```
 
-#### Three Phases
+#### Drei Phasen
 
-| Phase | Description |
+| Phase | Beschreibung |
 |-------|-------------|
-| **setup** | Preparatory steps, executed sequentially |
-| **timed** | Auto-generated from test data files. Filename pattern: `<time>_<type>_<rest>.json`. Steps sorted by time. |
-| **teardown** | Post-processing steps (export, verification, reporting) |
+| **setup** | Vorbereitende Steps, sequentiell abgearbeitet |
+| **timed** | Automatisch generiert aus Testdaten-Dateien. Dateiname-Pattern: `<zeit>_<typ>_<rest>.json`. Steps sortiert nach Zeit. |
+| **teardown** | Nachbereitende Steps (Export, Pruefung, Reporting) |
+
+#### Runner-gesteuertes Timing
+
+Der Runner uebernimmt die Zeitsteuerung — Steps muessen nicht selbst warten:
+
+```
+Setup-Steps laufen sequentiell
+  Setup → ClearDB → CheckStartTime
+                          ↓
+          Runner merkt: referenceTime = now()
+                          ↓
+Timed Steps: Runner wartet auf den richtigen Zeitpunkt
+  +120s: SendRiFahrtV1Time 120 (TC1, +0.2s TC2, +0.4s TC3, ...)
+  +240s: SendRiFahrtV1Time 240 (TC1, +0.2s TC2, +0.4s TC3, ...)
+                          ↓
+Teardown-Steps laufen sequentiell
+  ExportResults → CheckResults → StoreArtifacts
+```
+
+**Konfiguration:**
+- `timing.startAfterStep`: Nach diesem Step beginnt die Zeitmessung
+- `timing.testcaseDelaySeconds`: Versatz zwischen Testcases (z.B. 0.2s)
+- `stepDefinition.timing.offsetSeconds`: Sekunden nach Referenzzeit
+
+Im `testMode` werden alle Delays uebersprungen.
 
 #### Timed Steps
 
-Files in test data directories are scanned:
+Dateien in den Testdaten-Verzeichnissen werden gescannt:
 
 ```
 TC_01/
@@ -133,74 +155,78 @@ TC_01/
   240_ri-fahrt-v1_update.json    → SendRiFahrtV1Time 240
 ```
 
-The `timedStepMapping` maps the file type (`ri-fahrt-v1`) to the step ID (`SendRiFahrtV1Time`). Step data contains `{ offsetTime: 120, files: [...] }`.
+Das `timedStepMapping` ordnet den Datei-Typ (`ri-fahrt-v1`) dem Step-ID (`SendRiFahrtV1Time`) zu. Die Step-Daten enthalten `{ offsetTime: 120, files: [...] }`.
 
 #### Usage
 
 ```typescript
-import { createSuiteFromConfig } from '@bitdiver/core'
+import { createSuiteFromConfig } from '@xhubio/bitdiver-runner'
 
 const suite = await createSuiteFromConfig({
-  config: suiteConfigYaml,  // parsed YAML/JSON
+  config: suiteConfigYaml,  // geparstes YAML/JSON
   suiteType: 'TEST_FIX',
-  testDataDir: './testdata',
-  suiteName: 'regression-package1'
+  testDataDir: './testdaten',
+  suiteName: 'regression-paket1'
 })
-
-// suite is a SuiteDefinitionInterface — can be saved as JSON
-// or passed directly to the Runner
 ```
 
 ---
 
-### definition — Suite Format
+### definition — Suite-Format
 
-The compact suite format with sparse data maps.
+Das kompakte Suite-Format mit Sparse-Data-Maps und optionalem Timing.
 
 ```json
 {
   "executionMode": "batch",
-  "name": "regression-package1",
+  "name": "regression-paket1",
   "steps": ["SetupStep", "SendData 120", "CheckStep"],
   "stepDefinitions": {
     "SetupStep": { "id": "SetupStep", "name": "SetupStep", "description": "..." },
-    "SendData 120": { "id": "SendDataTime", "name": "SendData 120", "description": "" },
+    "SendData 120": {
+      "id": "SendDataTime", "name": "SendData 120", "description": "",
+      "timing": { "offsetSeconds": 120 }
+    },
     "CheckStep": { "id": "CheckStep", "name": "CheckStep", "description": "..." }
   },
   "testcases": [
     {
-      "name": "TC_01_Relief",
+      "name": "TC_01_Entlastung",
       "data": {
         "SendData 120": { "offsetTime": 120, "files": ["TC_01/120_data.json"] }
       }
     }
-  ]
+  ],
+  "timing": {
+    "startAfterStep": "SetupStep",
+    "testcaseDelaySeconds": 0.2
+  }
 }
 ```
 
-**Advantages over the old format:**
-- `steps` is an array (once for all TCs, not repeated per TC)
-- `data` is a map (`stepName → data`), not positional arrays with 93% nulls
-- `stepDefinitions` are separate from the ordering
+**Designprinzipien:**
+- `steps` ist ein Array (einmal fuer alle TCs, nicht pro TC wiederholt)
+- `data` ist eine Map (`stepName -> data`), keine positionalen Arrays mit Nulls
+- `stepDefinitions` mit optionalem `timing` fuer zeitgesteuerte Steps
+- `timing` auf Suite-Ebene fuer Referenzzeit und TC-Versatz
 
 ---
 
-### model — Steps and Environments
+### model — Steps und Environments
 
 #### StepNormal
 
-A step that is executed **once per test case**. Each instance has exactly one test case context.
+Ein Step der **einmal pro Testcase** ausgefuehrt wird. Auch fuer zeitgesteuerte Steps — der Runner uebernimmt das Timing.
 
 ```typescript
-import { StepNormal } from '@bitdiver/core'
+import { StepNormal } from '@xhubio/bitdiver-runner'
 
 class SendData extends StepNormal {
   async run(): Promise<void> {
-    const env = this.tc              // typed: EnvironmentTestcase
-    const payload = this.data        // step data from the suite
-    const config = this.environmentRun?.map.get('kafka')
+    const env = this.tc              // typisiert: EnvironmentTestcase
+    const payload = this.data        // Step-Daten aus der Suite
 
-    await sendToKafka(config, payload)
+    await sendToKafka(payload)
     await this.logInfo(`Sent data for ${env.name}`)
   }
 }
@@ -208,17 +234,15 @@ class SendData extends StepNormal {
 
 #### StepSingle
 
-A step that is executed **once for all test cases**. Has access to all TC environments.
+Ein Step der **einmal fuer alle Testcases** ausgefuehrt wird. Hat Zugriff auf alle TC-Environments.
 
 ```typescript
-import { StepSingle } from '@bitdiver/core'
+import { StepSingle } from '@xhubio/bitdiver-runner'
 
 class ClearDatabase extends StepSingle {
   async run(): Promise<void> {
-    // Execute once, not per TC
     await db.clear()
 
-    // Access all TCs:
     for (const { environment, data } of this.testcases) {
       environment.map.set('dbCleared', true)
     }
@@ -226,38 +250,13 @@ class ClearDatabase extends StepSingle {
 }
 ```
 
-#### StepTimed
-
-A step that waits until a specific point in time before executing.
-
-```typescript
-import { StepTimed } from '@bitdiver/core'
-
-class SendAtTime extends StepTimed {
-  getReferenceTime(): string {
-    return this.tc.map.get('START_TIME')
-  }
-
-  getOffsetSeconds(): number {
-    return this.data.offsetTime  // e.g. 120
-  }
-
-  async doRun(): Promise<void> {
-    // Executes only after 120 seconds from reference time
-    await sendData(this.data.files)
-  }
-}
-```
-
-In `testMode` the delay is skipped.
-
 #### StepSetupConfig
 
-Generic step that loads configuration into the run environment.
+Generischer Step der Konfiguration in die Run-Umgebung laedt.
 
 ```typescript
 import { z } from 'zod'
-import { StepSetupConfig } from '@bitdiver/core'
+import { StepSetupConfig } from '@xhubio/bitdiver-runner'
 
 const mySchema = z.object({
   kafka: z.object({
@@ -273,70 +272,68 @@ class SetupMyEnv extends StepSetupConfig<typeof mySchema.shape> {
 }
 ```
 
-Step data: `{ "configFile": "./config.json", "envPrefix": "CUSTOM" }`
+Step-Daten: `{ "configFile": "./config.json", "envPrefix": "CUSTOM" }`
 
-#### Environment Persistence
+#### Environment-Persistenz
 
-Steps can exchange data between steps via `environmentTestcase.map`. For large data there is disk persistence:
+Steps koennen Daten zwischen Steps austauschen ueber `environmentTestcase.map`. Fuer grosse Daten gibt es Disk-Persistenz:
 
 ```typescript
 class ExportStep extends StepNormal {
   async run(): Promise<void> {
     this.tc.map.set('results', largeData)
 
-    // Write to disk + remove from memory
+    // Auf Disk schreiben + aus Memory entfernen
     await this.exportVars(['results'], './results/TC_01')
 
-    // Load again later
+    // Spaeter wieder laden
     await this.loadVars(['results'], './results/TC_01')
   }
 }
 
 class StepWithTempData extends StepNormal {
   async run(): Promise<void> {
-    // Automatically cleaned up after afterRun()
+    // Automatisch aufgeraeumt nach afterRun()
     await this.loadTempVars(['cached'], './cache')
     const data = this.tc.map.get('cached')
   }
 }
 ```
 
-#### Step Lifecycle
+#### Step-Lifecycle
 
 ```
-start()      → Initialization (all instances of a step)
-beforeRun()  → Preparation (load config, set paths)
-run()        → Main work
-afterRun()   → Cleanup (delete temp variables)
-end()        → Finalization (all instances of a step)
+start()      -> Initialisierung (alle Instanzen eines Steps)
+beforeRun()  -> Vorbereitung (Config laden, Pfade setzen)
+run()        -> Hauptarbeit
+afterRun()   -> Aufraeumen (temp Variablen loeschen)
+end()        -> Abschluss (alle Instanzen eines Steps)
 ```
 
 #### StepRegistry
 
-Registers step classes under a name. The Runner uses the registry to instantiate steps.
+Registriert Step-Klassen unter einem Namen. Der Runner nutzt die Registry um Steps zu instanziieren.
 
 ```typescript
-import { StepRegistry } from '@bitdiver/core'
+import { StepRegistry } from '@xhubio/bitdiver-runner'
 
 const registry = new StepRegistry()
 registry.registerStep({ stepName: 'SendData', step: SendData })
 registry.registerStep({ stepName: 'ClearDB', step: ClearDatabase })
-
-const step = registry.getStep('SendData')  // new instance
 ```
 
 ---
 
-### runner-server — Test Execution
+### runner-server — Test-Ausfuehrung
 
 #### Runner
 
-Executes a suite. Supports two modes:
-- **batch** (default): Iterates steps, then test cases per step
-- **normal**: Iterates test cases, then steps per test case
+Fuehrt eine Suite aus. Unterstuetzt zwei Modi:
+- **batch** (Standard): Iteriert Steps, dann Testcases pro Step
+- **normal**: Iteriert Testcases, dann Steps pro Testcase
 
 ```typescript
-import { Runner, ProgressBarConsoleLogBatchJson, LogAdapterFile } from '@bitdiver/core'
+import { Runner, ProgressBarConsoleLogBatchJson, LogAdapterFile } from '@xhubio/bitdiver-runner'
 
 const runner = new Runner({
   id: 'run-001',
@@ -353,34 +350,37 @@ const runner = new Runner({
 await runner.run()
 ```
 
+**Timing-Steuerung:** Der Runner liest `suite.timing` und `stepDefinition.timing`:
+- Setzt `referenceTime` nach dem konfigurierten `startAfterStep`
+- Wartet bei timed Steps bis `referenceTime + offsetSeconds`
+- Fuegt `testcaseDelaySeconds` Versatz zwischen TCs ein
+- Ueberspringt alle Delays im `testMode`
+
 #### ProgressMeter
 
-Hooks for live progress. Base classes with empty `update()` methods for subclassing:
+Hooks fuer Live-Fortschritt:
 
-| Hook | When |
+| Hook | Wann |
 |------|------|
-| `init({ stepCount, testcaseCount, name })` | Run starts |
-| `incStep(name)` | New step begins |
-| `incTestcase(name)` | New test case in step |
-| `setFail()` | Test case failed |
-| `done()` | Run finished |
-
-Built-in implementations: `ProgressBarConsoleBatch`, `ProgressBarConsoleLogBatch`, `ProgressBarConsoleLogBatchJson`.
+| `init({ stepCount, testcaseCount, name })` | Run startet |
+| `incStep(name)` | Neuer Step beginnt |
+| `incTestcase(name)` | Neuer Testcase in Step |
+| `setFail()` | Testcase fehlgeschlagen |
+| `done()` | Run beendet |
 
 ---
 
-### check — Result Comparison
+### check — Ergebnis-Vergleich
 
-Compares expected files with actual results.
+Vergleicht Expected-Dateien mit Actual-Ergebnissen.
 
 ```typescript
-import { StepCheck } from '@bitdiver/core'
+import { StepCheck } from '@xhubio/bitdiver-runner'
 
-// Register as a step in the suite:
 registry.registerStep({ stepName: 'CheckResults', step: StepCheck })
 ```
 
-Step data:
+Step-Daten:
 
 ```json
 {
@@ -392,129 +392,58 @@ Step data:
     "expectedDir": "expected/kafka",
     "dataPath": ["data"],
     "ignorePaths": [
-      { "path": ["header", "messageId"], "doc": ["System-generated"] }
+      { "path": ["header", "messageId"], "doc": ["System-generiert"] }
     ]
   }]
 }
 ```
 
-**Pipeline per check:**
-1. **Mapping**: Actual files are matched to expected files by filename
-2. **Comparison**: Each pair is compared with `@aikotools/datacompare` (deep compare with directives: Time, Number, Regex, Contains etc.)
-3. **Reporting**: `summary.json` + `details.json` + `mapping.json` per check
-
-**Result files:**
-
-```json
-// summary.json
-{
-  "name": "kafka-events",
-  "total": 15,
-  "passed": 13,
-  "failed": 1,
-  "missing": 1,
-  "unexpected": 0
-}
-```
+**Pipeline:** Mapping (Dateiname) -> Vergleich (@aikotools/datacompare) -> Reporting (summary.json + details.json)
 
 ---
 
 ### logadapter — Logging
 
-Pluggable log adapters with structured messages.
-
-| Adapter | Description |
+| Adapter | Beschreibung |
 |---------|-------------|
-| `LogAdapterConsole` | Output to stdout |
-| `LogAdapterConsoleJson` | JSON-formatted output |
-| `LogAdapterFile` | Writes to filesystem (organized by Run/TC/Step) |
-| `LogAdapterMemory` | Stores in-memory (for tests) |
+| `LogAdapterConsole` | Ausgabe auf stdout |
+| `LogAdapterConsoleJson` | JSON-formatierte Ausgabe |
+| `LogAdapterFile` | Schreibt in Dateisystem (Run/TC/Step Struktur) |
+| `LogAdapterMemory` | In-memory (fuer Tests) |
 
-**Log levels:** `debug` (0), `info` (1), `warning` (2), `error` (3), `fatal` (4)
+**Log-Level:** `debug` (0), `info` (1), `warning` (2), `error` (3), `fatal` (4)
 
-**Log message structure:**
-
-```typescript
-{
-  meta: {
-    run: { id, name, start },
-    tc?: { id, name, tcCountCurrent, tcCountAll },
-    step?: { id, name, stepCountCurrent, stepCountAll, type },
-    source?: { testcases: string[], stepName?: string, isSingleStep?: boolean },
-    logTime: number
-  },
-  data: any,
-  logLevel: string
-}
-```
-
-The `source` field in run-level error logs shows which test case and step caused the error.
+Run-Level Error-Logs enthalten ein `source`-Feld mit Testcase-Name, Step-Name und SingleStep-Marker.
 
 ---
 
-## Project Structure
+## Projekt-Struktur
 
 ```
 src/
-  index.ts                     Barrel export
-  config/
-    loadConfig.ts              Zod-based config loading
-  suite-builder/
-    types.ts                   Suite config schema (Zod)
-    scanTimedFiles.ts          Test data scanner
-    buildTimedSteps.ts         Timed step generation
-    createSuiteFromConfig.ts   Create suite from config
-  definition/
-    interfaceSuiteDefinition.ts
-    interfaceTestcaseDefinition.ts
-    interfaceStepDefinition.ts
-    schema/validate.ts         Zod validation
-  model/
-    StepBase.ts                Base class (lifecycle, logging)
-    StepNormal.ts              1 instance per TC + persistence
-    StepSingle.ts              1 instance for all TCs
-    StepTimed.ts               Time-controlled step
-    StepSetupConfig.ts         Config loading step
-    StepPersistence.ts         Disk persistence helpers
-    StepRegistry.ts            Step class registry
-    EnvironmentRun.ts          Run-wide environment
-    EnvironmentTestcase.ts     TC-specific environment
-    generateLogs.ts            Log message builder
-  runner-server/
-    Runner.ts                  Suite execution
-    RunnerLogAdapter.ts        Log interceptor
-    pAll.ts                    Concurrency helper
-    progress/                  ProgressMeter implementations
-  check/
-    StepCheck.ts               Generic check step
-    runCheck.ts                Check orchestration
-    mapFiles.ts                File mapping (Expected↔Actual)
-    types.ts                   Check interfaces
-  logadapter/
-    LogAdapterConsole.ts
-    LogAdapterConsoleJson.ts
-    LogAdapterFile.ts
-    LogAdapterMemory.ts
+  index.ts                     Barrel-Export
+  config/                      Zod-basiertes Config-Laden
+  suite-builder/               Deklarative Suite-Erstellung
+  definition/                  Suite/Step/Testcase Interfaces + Zod-Validierung
+  model/                       Steps, Environments, Persistence, Registry
+  runner-server/               Runner, Timing, ProgressMeter, LogAdapter-Bridge
+  check/                       Expected vs Actual Vergleich
+  logadapter/                  Pluggable Logging
 tests/
-  35 test suites, 208 tests
+  36 Test-Suites, 223 Tests
 ```
 
 ## Tooling
 
-| Tool | Purpose |
-|------|---------|
-| **Vitest** | Test runner |
-| **Biome** | Linting + formatting (replaces ESLint + Prettier) |
-| **Zod** | Schema validation + TypeScript types |
-| **TypeScript 6.0** | Type system |
+| Tool | Zweck |
+|------|-------|
+| **Vitest** | Test-Runner |
+| **Biome** | Linting + Formatting |
+| **Zod** | Schema-Validierung + TypeScript-Typen |
+| **TypeScript** | Typisierung |
 
 ## Dependencies
 
-**Runtime:**
-- `zod` — Schema validation
-- `@aikotools/datacompare` — Deep object comparison engine
-- `luxon` — Time calculation (for StepTimed)
-- `uuid` — Unique IDs
-- `md5` — Hashing
+**Runtime:** `zod`, `@aikotools/datacompare`, `luxon`, `uuid`, `md5`
 
-**No** additional runtime dependencies. Former dependencies (`clone`, `mkdirp`, `rimraf`, `sprintf-js`, `p-all`, `ajv`) have been replaced by native Node.js APIs.
+Ehemalige Dependencies (`clone`, `mkdirp`, `rimraf`, `sprintf-js`, `p-all`, `ajv`) wurden durch native Node.js APIs ersetzt.
