@@ -4,6 +4,7 @@ export { scanTimedFiles } from './scanTimedFiles'
 export {
   normalizeTimedStepMapping,
   type ParsedFileName,
+  type StepEntry,
   type SuiteConfig,
   type SuiteTypeConfig,
   suiteConfigSchema,

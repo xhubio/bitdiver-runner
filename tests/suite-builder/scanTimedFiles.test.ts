@@ -90,7 +90,7 @@ describe('scanTimedFiles', () => {
   })
 
   test('custom pattern with <TIME> at end of filename', async () => {
-    const customMapping = normalizeTimedStepMapping({
+    const _customMapping = normalizeTimedStepMapping({
       customRifahrt: {
         stepId: 'SendCustomRiFahrt',
         pattern: 'data_rifahrt_.*_(\\d+)\\.json'.replace('(\\d+)', '<TIME>')

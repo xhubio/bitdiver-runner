@@ -6,7 +6,7 @@ import type {
 } from '../definition/index'
 import { buildTimedSteps } from './buildTimedSteps'
 import { scanTimedFiles } from './scanTimedFiles'
-import { normalizeTimedStepMapping, suiteConfigSchema } from './types'
+import { normalizeTimedStepMapping, type StepEntry, suiteConfigSchema } from './types'
 
 export interface CreateSuiteFromConfigRequest {
   /** The suite configuration (parsed YAML/JSON) */
@@ -65,11 +65,7 @@ export async function createSuiteFromConfig(
   }
 
   // Phase 1: Setup steps
-  for (const stepId of typeConfig.setup) {
-    const name = stepId
-    stepDefinitions[name] = { id: stepId, name, description: '' }
-    stepOrder.push(name)
-  }
+  addPhaseSteps(typeConfig.setup, stepDefinitions, stepOrder, tcDataMap, testcaseNames)
 
   // Phase 2: Timed steps
   if (typeConfig.timed === 'auto') {
@@ -92,11 +88,7 @@ export async function createSuiteFromConfig(
   }
 
   // Phase 3: Teardown steps
-  for (const stepId of typeConfig.teardown) {
-    const name = stepId
-    stepDefinitions[name] = { id: stepId, name, description: '' }
-    stepOrder.push(name)
-  }
+  addPhaseSteps(typeConfig.teardown, stepDefinitions, stepOrder, tcDataMap, testcaseNames)
 
   // Assemble testcases
   const testcases: TestcaseDefinitionInterface[] = testcaseNames.map((tcName) => ({
@@ -111,6 +103,42 @@ export async function createSuiteFromConfig(
     stepDefinitions,
     testcases,
     timing: typeConfig.timing
+  }
+}
+
+/**
+ * Process a list of step entries (String or { step, ...params }) and add them to the suite.
+ * Object entries have their params written as step data for ALL testcases.
+ */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: straightforward step processing
+function addPhaseSteps(
+  entries: StepEntry[],
+  stepDefinitions: { [key: string]: StepDefinitionInterface },
+  stepOrder: string[],
+  tcDataMap: Map<string, Record<string, unknown>>,
+  testcaseNames: string[]
+): void {
+  for (const entry of entries) {
+    if (typeof entry === 'string') {
+      // Simple step name, no data
+      stepDefinitions[entry] = { id: entry, name: entry, description: '' }
+      stepOrder.push(entry)
+    } else {
+      // Object with { step, ...params }
+      const { step: stepId, ...params } = entry as { step: string; [key: string]: unknown }
+      stepDefinitions[stepId] = { id: stepId, name: stepId, description: '' }
+      stepOrder.push(stepId)
+
+      // Write params as step data for all testcases
+      if (Object.keys(params).length > 0) {
+        for (const tcName of testcaseNames) {
+          const tcData = tcDataMap.get(tcName)
+          if (tcData) {
+            tcData[stepId] = params
+          }
+        }
+      }
+    }
   }
 }
 

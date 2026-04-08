@@ -29,14 +29,32 @@ const timedStepMappingEntrySchema = z.union([
 /** Mapping from key to stepId (simple) or { stepId, pattern } (custom) */
 const timedStepMappingSchema = z.record(z.string(), timedStepMappingEntrySchema)
 
+/**
+ * A step entry in setup/teardown can be:
+ * - A string: step name without data
+ * - An object: { step: "name", ...params } — params become step data for ALL testcases
+ *
+ * @example
+ * ```yaml
+ * setup:
+ *   - SetupEnvironmentRun
+ *   - step: Wait
+ *     seconds: 30
+ *   - ClearDatabase
+ * ```
+ */
+const stepEntrySchema = z.union([z.string(), z.object({ step: z.string() }).passthrough()])
+
+export type StepEntry = z.infer<typeof stepEntrySchema>
+
 /** Suite type phase definition */
 const suiteTypeSchema = z.object({
-  /** Steps to run before timed phase (sequential) */
-  setup: z.array(z.string()).default([]),
+  /** Steps to run before timed phase. String or { step, ...params }. */
+  setup: z.array(stepEntrySchema).default([]),
   /** 'auto' = scan testdata files using timedStepMapping */
-  timed: z.literal('auto').or(z.array(z.string())).default([]),
-  /** Steps to run after timed phase (sequential) */
-  teardown: z.array(z.string()).default([]),
+  timed: z.literal('auto').or(z.array(stepEntrySchema)).default([]),
+  /** Steps to run after timed phase. String or { step, ...params }. */
+  teardown: z.array(stepEntrySchema).default([]),
   /** Optional timing configuration — if set, the Runner manages step timing */
   timing: z
     .object({
