@@ -106,7 +106,7 @@ export class ProgressBarConsoleLogBatchJson extends ProgressMeterBatch {
     meta.sequence = this.sequence++
 
     const outputJson = JSON.stringify({ meta, data })
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
     console.log(outputJson)
   }
 }

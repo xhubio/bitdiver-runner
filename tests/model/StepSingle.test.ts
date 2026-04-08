@@ -149,25 +149,25 @@ test('Logging: fatal', async () => {
   })
 })
 
-test('Create step needData = false', async () => {
+test('Create step needData = false', () => {
   const step = new StepSingle({ name: 'gugu', needData: false })
   expect(step.needData).toEqual(false)
 })
-test('Create step needData = undefined', async () => {
+test('Create step needData = undefined', () => {
   const step = new StepSingle({ name: 'gugu' })
   expect(step.needData).toEqual(true)
 })
 
-test('Create step runOnError = true', async () => {
+test('Create step runOnError = true', () => {
   const step = new StepSingle({ name: 'gugu', runOnError: true })
   expect(step.runOnError).toEqual(true)
 })
-test('Create step runOnError = undefined', async () => {
+test('Create step runOnError = undefined', () => {
   const step = new StepSingle({ name: 'gugu' })
   expect(step.runOnError).toEqual(false)
 })
 
-test('Create step type = undefined', async () => {
+test('Create step type = undefined', () => {
   const step = new StepSingle({ name: 'gugu' })
   expect(step.type).toEqual('single')
 })

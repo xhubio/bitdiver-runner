@@ -34,8 +34,10 @@ const runner = new Runner({
 runner
   .run()
   .then(() => {
-    console.log('\n\nFINISHED') // eslint-disable-line no-console
+    // biome-ignore lint/suspicious/noConsole: manual test script output
+    console.log('\n\nFINISHED')
   })
   .catch((err) => {
-    console.log('ERROR: ', err) // eslint-disable-line no-console
+    // biome-ignore lint/suspicious/noConsole: manual test script output
+    console.log('ERROR: ', err)
   })

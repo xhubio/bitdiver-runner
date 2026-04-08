@@ -20,6 +20,7 @@ const TIMEOUT = 1000000
 
 logAdapter.level = 0
 
+// biome-ignore lint/style/useNamingConvention: test accumulator uses uppercase by convention
 let RESULT: string[] = []
 
 class MyProgressMeter extends ProgressMeterBatch {
@@ -29,16 +30,18 @@ class MyProgressMeter extends ProgressMeterBatch {
 }
 
 class MyStepNormal extends StepNormalLocal {
-  async _work(method: string): Promise<void> {
+  _work(method: string): Promise<void> {
     RESULT.push(`NORMAL ${method} ${this.name} ${this.environmentTestcase?.name}`)
+    return Promise.resolve()
   }
 }
 
 class MyStepSingle extends StepSingleLocal {
-  async _work(method: string): Promise<void> {
+  _work(method: string): Promise<void> {
     if (this.environmentTestcase !== undefined) {
       RESULT.push(`SINGLE ${method} ${this.name}`)
     }
+    return Promise.resolve()
   }
 }
 

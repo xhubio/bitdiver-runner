@@ -4,8 +4,9 @@ import { LogAdapterConsole } from './LogAdapterConsole'
 export class LogAdapterMemory extends LogAdapterConsole {
   logs: any = {}
 
-  async reset(): Promise<void> {
+  reset(): Promise<void> {
     this.logs = {}
+    return Promise.resolve()
   }
 
   _prepareRun(runId: string): void {
@@ -28,16 +29,17 @@ export class LogAdapterMemory extends LogAdapterConsole {
     }
   }
 
-  async _logRun(logMessage: LogMessageInterface): Promise<void> {
+  _logRun(logMessage: LogMessageInterface): Promise<void> {
     const runId = logMessage.meta.run.id
     this._prepareRun(runId)
     this.logs[runId].logs.push({
       data: logMessage.data,
       logLevel: logMessage.logLevel
     })
+    return Promise.resolve()
   }
 
-  async _logTestcase(logMessage: LogMessageInterface): Promise<void> {
+  _logTestcase(logMessage: LogMessageInterface): Promise<void> {
     const runId = logMessage.meta.run.id
     const testcaseName = logMessage.meta.tc?.name
 
@@ -52,9 +54,10 @@ export class LogAdapterMemory extends LogAdapterConsole {
         countAll: logMessage.meta.tc?.tcCountAll
       })
     }
+    return Promise.resolve()
   }
 
-  async _logStep(logMessage: LogMessageInterface): Promise<void> {
+  _logStep(logMessage: LogMessageInterface): Promise<void> {
     const runId = logMessage.meta.run.id
     const testcaseName = logMessage.meta.tc?.name
     const stepName = logMessage.meta.step?.name
@@ -82,5 +85,6 @@ export class LogAdapterMemory extends LogAdapterConsole {
         countAll: logMessage.meta.step?.stepCountAll
       })
     }
+    return Promise.resolve()
   }
 }

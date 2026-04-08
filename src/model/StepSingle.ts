@@ -62,14 +62,14 @@ export class StepSingle extends StepBase {
   /**
    * Write environment variables for a specific testcase to disk.
    */
-  async writeVars(tcEnv: EnvironmentTestcase, varNames: string[], dir: string): Promise<void> {
-    await writeVars(tcEnv, varNames, dir)
+  writeVars(tcEnv: EnvironmentTestcase, varNames: string[], dir: string): Promise<void> {
+    return writeVars(tcEnv, varNames, dir)
   }
 
   /**
    * Load environment variables for a specific testcase from disk.
    */
-  async loadVars(
+  loadVars(
     tcEnv: EnvironmentTestcase,
     varNames: string[],
     dir: string,
@@ -81,8 +81,8 @@ export class StepSingle extends StepBase {
   /**
    * Write to disk and remove from memory for a specific testcase.
    */
-  async exportVars(tcEnv: EnvironmentTestcase, varNames: string[], dir: string): Promise<void> {
-    await exportVars(tcEnv, varNames, dir)
+  exportVars(tcEnv: EnvironmentTestcase, varNames: string[], dir: string): Promise<void> {
+    return exportVars(tcEnv, varNames, dir)
   }
 
   /**
@@ -95,7 +95,7 @@ export class StepSingle extends StepBase {
   /**
    * Load temporary variables for a specific testcase. Auto-cleanup in afterRun.
    */
-  async loadTempVars(
+  loadTempVars(
     tcEnv: EnvironmentTestcase,
     varNames: string[],
     dir: string,
@@ -109,12 +109,13 @@ export class StepSingle extends StepBase {
    * Auto-cleanup of temporary variables across all testcases.
    * Subclasses that override afterRun should call super.afterRun().
    */
-  async afterRun(): Promise<void> {
+  afterRun(): Promise<void> {
     if (this._tempVarNames.length > 0 && this.environmentTestcase) {
       for (const tcEnv of this.environmentTestcase) {
         deleteVars(tcEnv, this._tempVarNames)
       }
       this._tempVarNames = []
     }
+    return Promise.resolve()
   }
 }

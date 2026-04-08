@@ -56,21 +56,7 @@ export class StepSingleLocal extends StepSingle {
     }
     for (const dat of this.data) {
       if (dat[method] !== undefined) {
-        // Ok there is an action defined for this method
-        const action = dat[method].action
-        const value = dat[method].value
-
-        if (action === 'logInfo') {
-          await this.logInfo(value)
-        } else if (action === 'logWarning') {
-          await this.logWarning(value)
-        } else if (action === 'logError') {
-          await this.logError(value)
-        } else if (action === 'logFatal') {
-          await this.logFatal(value)
-        } else if (action === 'exception') {
-          throw new Error(value)
-        }
+        await this._dispatchAction(dat[method].action, dat[method].value)
       }
     }
 
@@ -79,5 +65,19 @@ export class StepSingleLocal extends StepSingle {
         resolve('')
       }, time)
     })
+  }
+
+  private async _dispatchAction(action: string, value: string): Promise<void> {
+    if (action === 'logInfo') {
+      await this.logInfo(value)
+    } else if (action === 'logWarning') {
+      await this.logWarning(value)
+    } else if (action === 'logError') {
+      await this.logError(value)
+    } else if (action === 'logFatal') {
+      await this.logFatal(value)
+    } else if (action === 'exception') {
+      throw new Error(value)
+    }
   }
 }

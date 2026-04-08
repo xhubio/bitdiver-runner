@@ -15,9 +15,10 @@ class TestTimedStep extends StepTimed {
     return this.data?.offsetTime ?? 0
   }
 
-  async doRun(): Promise<void> {
+  doRun(): Promise<void> {
     this.executed = true
     this.executedAt = Date.now()
+    return Promise.resolve()
   }
 }
 

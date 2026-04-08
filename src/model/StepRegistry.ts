@@ -27,7 +27,7 @@ export class StepRegistry {
 
     if (this.stepClassMap.has(stepName)) {
       // A step with the same name was already registred
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: intentional warning for duplicate registration
       console.warn(`There was already a step registered with the name '${stepName}'`)
     }
 

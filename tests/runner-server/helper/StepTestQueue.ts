@@ -12,24 +12,27 @@ export class StepTestQueue extends StepBase {
     this.console = opts.console ?? false
   }
 
-  async logInfo(msg: string): Promise<void> {
+  logInfo(msg: string): Promise<void> {
     this.logMe(
       `Step: ${this.name} -> TC: ${this.tcName} at ${new Date()} method: 'logInfo' \t ${msg}`
     )
+    return Promise.resolve()
   }
 
   /**
    * This method will be called when the step starts.
    */
-  async start(): Promise<void> {
+  start(): Promise<void> {
     this.logMe(`Step: ${this.name} -> TC: ${this.tcName} at ${new Date()} method: 'start'`)
+    return Promise.resolve()
   }
 
   /**
    * This method will be called just before the run method
    */
-  async beforeRun(): Promise<void> {
+  beforeRun(): Promise<void> {
     this.logMe(`Step: ${this.name} -> TC: ${this.tcName} at ${new Date()} method: 'beforeRun'`)
+    return Promise.resolve()
   }
 
   /**
@@ -48,20 +51,22 @@ export class StepTestQueue extends StepBase {
   /**
    * This method will be called just after the run is finished
    */
-  async afterRun(): Promise<void> {
+  afterRun(): Promise<void> {
     this.logMe(`Step: ${this.name} -> TC: ${this.tcName} at ${new Date()} method: 'afterRun'`)
+    return Promise.resolve()
   }
 
   /**
    * This method will be called when the step is finished
    */
-  async end(): Promise<void> {
+  end(): Promise<void> {
     this.logMe(`Step: ${this.name} -> TC: ${this.tcName} at ${new Date()} method: 'end'`)
+    return Promise.resolve()
   }
 
   logMe(msg: string): void {
     if (this.console) {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: test helper outputs to console when configured
       console.log(msg)
     }
   }

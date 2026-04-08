@@ -35,24 +35,21 @@ export const MAX_LOG_LEVEL = LOG_LEVEL_NUM_TO_NAME.length - 1
  * @returns
  */
 export function getLogLevelNumber(level?: number | string | undefined): number {
-  if (level !== undefined) {
-    if (typeof level === 'number') {
-      if (level >= 0 && level <= MAX_LOG_LEVEL) {
-        return level
-      }
-    } else {
-      const levelNum = Number.parseInt(level, 10)
-      if (!Number.isNaN(levelNum)) {
-        if (levelNum >= 0 && levelNum <= MAX_LOG_LEVEL) {
-          return levelNum
-        }
-        return DEFAULT_LOG_LEVEL
-      } else {
-        return getLevelNumberFromString(level)
-      }
-    }
+  if (level === undefined) return DEFAULT_LOG_LEVEL
+  if (typeof level === 'number') return isValidLevelNumber(level) ? level : DEFAULT_LOG_LEVEL
+  return parseLevelFromString(level)
+}
+
+function isValidLevelNumber(level: number): boolean {
+  return level >= 0 && level <= MAX_LOG_LEVEL
+}
+
+function parseLevelFromString(level: string): number {
+  const levelNum = Number.parseInt(level, 10)
+  if (!Number.isNaN(levelNum)) {
+    return isValidLevelNumber(levelNum) ? levelNum : DEFAULT_LOG_LEVEL
   }
-  return DEFAULT_LOG_LEVEL
+  return getLevelNumberFromString(level)
 }
 
 /**

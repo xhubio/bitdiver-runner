@@ -3,7 +3,7 @@ import path from 'node:path'
 import { STATUS_ERROR } from '../model/constants'
 import { StepNormal } from '../model/StepNormal'
 import { runCheck } from './runCheck'
-import type { CheckResult, CheckStepData } from './types'
+import type { CheckConfig, CheckResult, CheckStepData } from './types'
 
 /**
  * Generic step that compares actual test results against expected data.
@@ -59,65 +59,73 @@ export class StepCheck extends StepNormal {
     let hasFailures = false
 
     for (const checkConfig of stepData.checks) {
-      try {
-        const result = await runCheck({
-          checkConfig,
-          resultDir: stepData.resultDir,
-          dataDir: stepData.dataDir
-        })
-
-        this.results.push(result)
-
-        // Write result files
-        const checkResultDir = path.join(stepData.resultDir, checkConfig.name)
-        await fs.mkdir(checkResultDir, { recursive: true })
-
-        await fs.writeFile(
-          path.join(checkResultDir, 'summary.json'),
-          JSON.stringify(result.summary, null, 2)
-        )
-
-        await fs.writeFile(
-          path.join(checkResultDir, 'mapping.json'),
-          JSON.stringify(result.mapping, null, 2)
-        )
-
-        if (result.fileStatuses.length > 0) {
-          await fs.writeFile(
-            path.join(checkResultDir, 'details.json'),
-            JSON.stringify(result.fileStatuses, null, 2)
-          )
-        }
-
-        // Report results
-        if (result.summary.failed > 0 || result.summary.missing > 0) {
-          hasFailures = true
-          await this.logWarning({
-            check: checkConfig.name,
-            summary: result.summary
-          })
-        } else {
-          await this.logInfo({
-            check: checkConfig.name,
-            summary: result.summary
-          })
-        }
-      } catch (error) {
-        hasFailures = true
-        if (error instanceof Error) {
-          await this.logError({
-            check: checkConfig.name,
-            message: error.message,
-            stack: error.stack
-          })
-        } else {
-          await this.logError({ check: checkConfig.name, message: String(error) })
-        }
-      }
+      const failed = await this.runSingleCheck(checkConfig, stepData)
+      if (failed) hasFailures = true
     }
 
     if (hasFailures && this.environmentTestcase) {
       this.environmentTestcase.status = STATUS_ERROR
+    }
+  }
+
+  /** Run a single check config and write result files. Returns true if the check failed. */
+  private async runSingleCheck(
+    checkConfig: CheckConfig,
+    stepData: CheckStepData
+  ): Promise<boolean> {
+    try {
+      const result = await runCheck({
+        checkConfig,
+        resultDir: stepData.resultDir,
+        dataDir: stepData.dataDir
+      })
+
+      this.results.push(result)
+
+      const checkResultDir = path.join(stepData.resultDir, checkConfig.name)
+      await fs.mkdir(checkResultDir, { recursive: true })
+
+      await fs.writeFile(
+        path.join(checkResultDir, 'summary.json'),
+        JSON.stringify(result.summary, null, 2)
+      )
+
+      await fs.writeFile(
+        path.join(checkResultDir, 'mapping.json'),
+        JSON.stringify(result.mapping, null, 2)
+      )
+
+      if (result.fileStatuses.length > 0) {
+        await fs.writeFile(
+          path.join(checkResultDir, 'details.json'),
+          JSON.stringify(result.fileStatuses, null, 2)
+        )
+      }
+
+      if (result.summary.failed > 0 || result.summary.missing > 0) {
+        await this.logWarning({
+          check: checkConfig.name,
+          summary: result.summary
+        })
+        return true
+      }
+
+      await this.logInfo({
+        check: checkConfig.name,
+        summary: result.summary
+      })
+      return false
+    } catch (error) {
+      if (error instanceof Error) {
+        await this.logError({
+          check: checkConfig.name,
+          message: error.message,
+          stack: error.stack
+        })
+      } else {
+        await this.logError({ check: checkConfig.name, message: String(error) })
+      }
+      return true
     }
   }
 

@@ -47,7 +47,9 @@ export class LogAdapterConsole implements LogAdapterInterface {
    * Clears all the existing log entries
    * Placeholder for the implementing loggers
    */
-  async reset(): Promise<void> {}
+  reset(): Promise<void> {
+    return Promise.resolve()
+  }
 
   /**
    * Logs a message.
@@ -90,7 +92,7 @@ export class LogAdapterConsole implements LogAdapterInterface {
    * @param logMessage - The message to be logged. @see LogMessageInterface
    * @returns Promise<void>
    */
-  async _logRun(logMessage: LogMessageInterface): Promise<void> {
+  _logRun(logMessage: LogMessageInterface): Promise<void> {
     const message = extractMessageString(logMessage)
 
     if (logMessage.meta.source) {
@@ -98,12 +100,13 @@ export class LogAdapterConsole implements LogAdapterInterface {
       const tcInfo = src.testcases.length > 0 ? src.testcases.join(', ') : 'unknown'
       const stepInfo = src.stepName ? ` → ${src.stepName}` : ''
       const singleInfo = src.isSingleStep ? ' [SingleStep]' : ''
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: log adapter outputs to console
       console.log(`Run ${logMessage.logLevel}: ${tcInfo}${stepInfo}${singleInfo}: ${message}`)
     } else {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: log adapter outputs to console
       console.log(`Run: ${message}`)
     }
+    return Promise.resolve()
   }
 
   /**
@@ -112,18 +115,19 @@ export class LogAdapterConsole implements LogAdapterInterface {
    * @param logMessage - The message to be logged. @see LogMessageInterface
    * @returns Promise<void>
    */
-  async _logTestcase(logMessage: LogMessageInterface): Promise<void> {
+  _logTestcase(logMessage: LogMessageInterface): Promise<void> {
     if (logMessage.meta.tc === undefined) {
       throw new Error('_logTestcase must be provided with meta.tc')
     }
     const testcaseName = logMessage.meta.tc.name
     const message = extractMessageString(logMessage)
 
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsole: log adapter outputs to console
     console.log(
       'Test case: ',
       `${testcaseName}:\n${{ data: message, logLevel: logMessage.logLevel }}`
     )
+    return Promise.resolve()
   }
 
   /**
@@ -131,7 +135,7 @@ export class LogAdapterConsole implements LogAdapterInterface {
    * @param logMessage - The message to be logged. @see LogMessageInterface
    * @returns Promise<void>
    */
-  async _logStep(logMessage: LogMessageInterface): Promise<void> {
+  _logStep(logMessage: LogMessageInterface): Promise<void> {
     if (logMessage.meta.tc === undefined || logMessage.meta.step === undefined) {
       throw new Error('_logTestcase must be provided with meta.tc and meta.step')
     }
@@ -139,8 +143,9 @@ export class LogAdapterConsole implements LogAdapterInterface {
     const stepName = logMessage.meta.step.name
     const message = extractMessageString(logMessage)
 
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsole: log adapter outputs to console
     console.log('Step: ', `${logMessage.logLevel} ${testcaseName}->${stepName} ${message}`)
+    return Promise.resolve()
   }
 }
 

@@ -8,14 +8,17 @@ test('log run', async () => {
   const resRun: any = []
   const resTc: any = []
   const resStep: any = []
-  logAdapter._logRun = async (logMessage: LogMessageInterface) => {
+  logAdapter._logRun = (logMessage: LogMessageInterface) => {
     resRun.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logTestcase = async (logMessage: LogMessageInterface) => {
+  logAdapter._logTestcase = (logMessage: LogMessageInterface) => {
     resTc.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logStep = async (logMessage: LogMessageInterface) => {
+  logAdapter._logStep = (logMessage: LogMessageInterface) => {
     resStep.push(logMessage)
+    return Promise.resolve()
   }
 
   const logMessage = getDefaultLogMessage()
@@ -36,14 +39,17 @@ test('log test case', async () => {
   const resRun: any = []
   const resTc: any = []
   const resStep: any = []
-  logAdapter._logRun = async (logMessage: LogMessageInterface) => {
+  logAdapter._logRun = (logMessage: LogMessageInterface) => {
     resRun.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logTestcase = async (logMessage: LogMessageInterface) => {
+  logAdapter._logTestcase = (logMessage: LogMessageInterface) => {
     resTc.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logStep = async (logMessage: LogMessageInterface) => {
+  logAdapter._logStep = (logMessage: LogMessageInterface) => {
     resStep.push(logMessage)
+    return Promise.resolve()
   }
 
   const logMessage = getDefaultLogMessage()
@@ -63,14 +69,17 @@ test('log step', async () => {
   const resRun: any = []
   const resTc: any = []
   const resStep: any = []
-  logAdapter._logRun = async (logMessage: LogMessageInterface) => {
+  logAdapter._logRun = (logMessage: LogMessageInterface) => {
     resRun.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logTestcase = async (logMessage: LogMessageInterface) => {
+  logAdapter._logTestcase = (logMessage: LogMessageInterface) => {
     resTc.push(logMessage)
+    return Promise.resolve()
   }
-  logAdapter._logStep = async (logMessage: LogMessageInterface) => {
+  logAdapter._logStep = (logMessage: LogMessageInterface) => {
     resStep.push(logMessage)
+    return Promise.resolve()
   }
 
   const logMessage = getDefaultLogMessage()
@@ -95,11 +104,13 @@ test('Test reset and log step', async () => {
     myRunId: {
       logs: [],
       testcases: {
+        // biome-ignore lint/style/useNamingConvention: test fixture key matches testcase name format
         testcaseName_4: {
           countAll: 4,
           countCurrent: 2,
           logs: [],
           steps: {
+            // biome-ignore lint/style/useNamingConvention: test fixture key matches step name format
             stepName_1: {
               logs: [
                 {
@@ -154,6 +165,7 @@ test('Test log test case', async () => {
     myRunId: {
       logs: [],
       testcases: {
+        // biome-ignore lint/style/useNamingConvention: test fixture key matches testcase name format
         testcaseName_4: {
           countAll: 4,
           countCurrent: 2,

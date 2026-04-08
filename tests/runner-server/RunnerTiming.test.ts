@@ -11,8 +11,9 @@ import { Runner } from '../../src/runner-server/index'
 const executionOrder: string[] = []
 
 class TrackingStep extends StepNormal {
-  async run(): Promise<void> {
+  run(): Promise<void> {
     executionOrder.push(`${this.name}:${(this.environmentTestcase as any)?.name ?? 'unknown'}`)
+    return Promise.resolve()
   }
 }
 

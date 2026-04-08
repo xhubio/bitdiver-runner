@@ -6,23 +6,33 @@ export class ProgressBarConsoleBatch extends ProgressMeterBatch {
   progressBar?: any
 
   _printHeader(): void {
-    console.log('------------------------------------------------') // eslint-disable-line no-console
-    console.log(`| Execute suite:           ${this.name}`) // eslint-disable-line no-console
-    console.log(`| Total step count:        ${this.stepCount}`) // eslint-disable-line no-console
-    console.log(`| Total test case count:   ${this.testcaseCount}`) // eslint-disable-line no-console
-    console.log('------------------------------------------------') // eslint-disable-line no-console
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log('------------------------------------------------')
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Execute suite:           ${this.name}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Total step count:        ${this.stepCount}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Total test case count:   ${this.testcaseCount}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log('------------------------------------------------')
   }
 
   _printFooter(): void {
-    console.log('------------------------------------------------') // eslint-disable-line no-console
-    console.log(`| Result for suite:        ${this.name}`) // eslint-disable-line no-console
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log('------------------------------------------------')
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Result for suite:        ${this.name}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
     console.log(`| Steps:                   ${this.currentStep}/${this.stepCount}`)
-    // eslint-disable-next-line no-console
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
     console.log(`| Testcase:                ${this.currentTestcase}/${this.testcaseCount}`)
-    console.log(`| Last step:               ${this.lastStepName}`) // eslint-disable-line no-console
-    console.log(`| Last test case:          ${this.lastTestcaseName}`) // eslint-disable-line no-console
-    console.log('------------------------------------------------') // eslint-disable-line no-console
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Last step:               ${this.lastStepName}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log(`| Last test case:          ${this.lastTestcaseName}`)
+    // biome-ignore lint/suspicious/noConsole: progress bar outputs to console
+    console.log('------------------------------------------------')
   }
 
   done(): void {

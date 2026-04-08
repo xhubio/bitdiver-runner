@@ -13,7 +13,7 @@ export class LogAdapterConsoleJson extends LogAdapterConsole {
    * @param logMessage - The message to be logged
    * @returns Promise<void>
    */
-  async _writeLog(logMessage: LogMessageInterface): Promise<void> {
+  _writeLog(logMessage: LogMessageInterface): Promise<void> {
     const meta = logMessage.meta
     const data = logMessage.data
     const logLevel = logMessage.logLevel
@@ -32,12 +32,13 @@ export class LogAdapterConsoleJson extends LogAdapterConsole {
       printObject.meta.logTime = metaLogTimeString
       printObject.meta.run.start = metaRunStartTimeString
 
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: log adapter outputs to console
       console.log(JSON.stringify(printObject))
     } else if (meta.tc !== undefined) {
       // Testcase-level log — not printed in JSON adapter (step logs only)
     } else {
       // Run-level log — not printed in JSON adapter (step logs only)
     }
+    return Promise.resolve()
   }
 }

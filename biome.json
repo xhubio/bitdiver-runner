@@ -25,7 +25,8 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noExcessiveCognitiveComplexity": "error"
       },
       "performance": {
         "noDelete": "off"
@@ -36,13 +37,34 @@
         "noImplicitAnyLet": "off",
         "noConfusingVoidType": "off",
         "noGlobalIsNan": "warn",
-        "useGetterReturn": "off"
+        "useGetterReturn": "off",
+        "noConsole": "error",
+        "useAwait": "error"
       },
       "style": {
         "noNonNullAssertion": "off",
         "noParameterAssign": "off",
         "noUselessElse": "off",
-        "useConst": "error"
+        "useConst": "error",
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "conventions": [
+              {
+                "selector": { "kind": "objectLiteralMember" },
+                "formats": ["camelCase", "PascalCase", "CONSTANT_CASE", "snake_case"]
+              },
+              {
+                "selector": { "kind": "enumMember" },
+                "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
+              },
+              {
+                "selector": { "kind": "typeAlias" },
+                "formats": ["camelCase", "PascalCase"]
+              }
+            ]
+          }
+        }
       }
     }
   },

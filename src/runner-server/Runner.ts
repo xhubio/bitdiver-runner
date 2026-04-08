@@ -286,133 +286,25 @@ export class Runner {
     const stepCount = this.stepOrder.length
     await this._logStartRun({ testCaseCount: this.testcases.length, stepCount })
 
-    // To get all the step Ids we need to get alle the steps of each test case
     const stepIds = this.getAllStepIdsForBatchMode()
 
-    // first iterate the steps and then the testscases
     for (let stepCounter = 0; stepCounter < stepIds.length; stepCounter++) {
-      // if (this._shouldStopRun()) {
-      //   // OK we can stop the run here
-      //   break
-      // }
-
       if (stepCounter > 0) {
         this.progressMeterBatch.startOverTestcase()
       }
 
       const stepId = stepIds[stepCounter]
       const stepDefinition = this.stepDefinitions[stepId]
-
-      const steps = []
       const step = this.stepRegistry.getStep(stepDefinition.id)
-      step.name = stepDefinition.name // used for logging, if no instance is created
+      step.name = stepDefinition.name
 
       this.progressMeterBatch.incStep(stepDefinition.name)
+      await this._waitForTimedStep(stepDefinition)
 
-      // Wait for timed steps before building the step instances
-      if (stepDefinition.timing && this.referenceTime !== undefined) {
-        const delay = this._calculateTimingDelay(stepDefinition.timing.offsetSeconds)
-        if (delay > 0 && !this.testMode) {
-          await new Promise<void>((resolve) => setTimeout(resolve, delay))
-        }
-      }
+      const steps = this._buildStepInstances(stepId, stepCounter, stepCount, step, stepDefinition)
 
-      if (step.type === StepType.single) {
-        // Single Step
-        const singleStep: StepSingle = this.stepRegistry.getStep(stepDefinition.id) as StepSingle
-        singleStep.name = stepDefinition.name
-        singleStep.description = stepDefinition.description
-        singleStep.environmentTestcase = []
-        singleStep.countCurrent = stepCounter + 1
-        singleStep.countAll = stepCount
-        singleStep.testMode = this.testMode
-        singleStep.logAdapter = this.runnerLogAdapter
-        singleStep.environmentRun = this.environmentRun
-        singleStep.data = []
+      await this._executeStepBatch(steps, step, stepDefinition)
 
-        for (let tcCounter = 0; tcCounter < this.testcases.length; tcCounter++) {
-          const tc = this.testcases[tcCounter]
-          const tcEnvId = this.environmentTestcaseIds[tcCounter]
-          const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
-          if (tcEnv === undefined) {
-            throw new Error('Test case environment could not be found')
-          }
-          this.progressMeterBatch.incTestcase(tcEnv.name)
-
-          if (tcEnv.running || singleStep.runOnError) {
-            const data = tc.data[stepId] ?? null
-            singleStep.data.push(data)
-            singleStep.environmentTestcase.push(tcEnv)
-          }
-        }
-
-        if (!this._shouldStopRun() || singleStep.runOnError) {
-          // OK the step should run
-          steps.push(singleStep)
-        }
-      } else {
-        // Normal step
-        for (let tcCounter = 0; tcCounter < this.testcases.length; tcCounter++) {
-          const normalStep: StepNormal = this.stepRegistry.getStep(stepDefinition.id) as StepNormal
-          normalStep.name = stepDefinition.name
-          normalStep.description = stepDefinition.description
-          normalStep.countCurrent = stepCounter + 1
-          normalStep.countAll = stepCount
-          normalStep.testMode = this.testMode
-          normalStep.logAdapter = this.runnerLogAdapter
-          normalStep.environmentRun = this.environmentRun
-
-          const tc = this.testcases[tcCounter]
-          const tcEnvId = this.environmentTestcaseIds[tcCounter]
-          const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
-          if (tcEnv === undefined) {
-            throw new Error('The test case Environment could not be found')
-          }
-
-          const data = tc.data[stepId]
-          if ((data !== undefined && data !== null) || !normalStep.needData) {
-            this.progressMeterBatch.incTestcase(tcEnv.name)
-
-            normalStep.environmentTestcase = tcEnv
-            // only execute steps for testcases which not have failed
-            if (
-              (tcEnv.status < STATUS_ERROR && tcEnv.running) ||
-              (normalStep.runOnError && tcEnv.status < STATUS_FATAL)
-            ) {
-              normalStep.data = data
-
-              steps.push(normalStep)
-            }
-          } else {
-            this.progressMeterBatch.incTestcase('')
-          }
-        }
-      }
-
-      if (steps.length > 0) {
-        // For timed steps with testcase delay: execute testcases sequentially with stagger
-        if (
-          stepDefinition.timing &&
-          this.timing?.testcaseDelaySeconds &&
-          this.timing.testcaseDelaySeconds > 0 &&
-          step.type !== StepType.single
-        ) {
-          const delayMs = this.timing.testcaseDelaySeconds * 1000
-          for (let i = 0; i < steps.length; i++) {
-            if (i > 0 && !this.testMode) {
-              await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
-            }
-            await this._executeSteps([steps[i]])
-          }
-        } else {
-          await this._executeSteps(steps)
-        }
-      } else {
-        // eslint-disable-next-line no-console
-        console.log(`No instance of step '${step.name}'`)
-      }
-
-      // Set reference time after the configured step
       if (this.timing && stepId === this.timing.startAfterStep) {
         this.referenceTime = Date.now()
         await this._logInfo(`Reference time set after step '${stepId}'`)
@@ -420,8 +312,167 @@ export class Runner {
     }
 
     await this._closeTestcases()
-
     await this._logEndRun(this._getRunStatus())
+  }
+
+  /** Wait for timed step delay if applicable */
+  private async _waitForTimedStep(stepDefinition: StepDefinitionInterface): Promise<void> {
+    if (stepDefinition.timing && this.referenceTime !== undefined) {
+      const delay = this._calculateTimingDelay(stepDefinition.timing.offsetSeconds)
+      if (delay > 0 && !this.testMode) {
+        await new Promise<void>((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  /** Build step instances for one step-slot (single or normal step) */
+  private _buildStepInstances(
+    stepId: string,
+    stepCounter: number,
+    stepCount: number,
+    step: StepBase,
+    stepDefinition: StepDefinitionInterface
+  ): StepBase[] {
+    if (this.environmentTestcaseIds === undefined || this.environmentTestcaseMap === undefined) {
+      throw new Error('environments are undefined.')
+    }
+    if (step.type === StepType.single) {
+      return this._buildSingleStepInstances(stepId, stepCounter, stepCount, stepDefinition)
+    }
+    return this._buildNormalStepInstances(stepId, stepCounter, stepCount, stepDefinition)
+  }
+
+  /** Build instances for a single-type step */
+  private _buildSingleStepInstances(
+    stepId: string,
+    stepCounter: number,
+    stepCount: number,
+    stepDefinition: StepDefinitionInterface
+  ): StepBase[] {
+    if (this.environmentTestcaseIds === undefined || this.environmentTestcaseMap === undefined) {
+      throw new Error('environments are undefined.')
+    }
+    const singleStep: StepSingle = this.stepRegistry.getStep(stepDefinition.id) as StepSingle
+    singleStep.name = stepDefinition.name
+    singleStep.description = stepDefinition.description
+    singleStep.environmentTestcase = []
+    singleStep.countCurrent = stepCounter + 1
+    singleStep.countAll = stepCount
+    singleStep.testMode = this.testMode
+    singleStep.logAdapter = this.runnerLogAdapter
+    singleStep.environmentRun = this.environmentRun
+    singleStep.data = []
+
+    for (let tcCounter = 0; tcCounter < this.testcases.length; tcCounter++) {
+      const tc = this.testcases[tcCounter]
+      const tcEnvId = this.environmentTestcaseIds[tcCounter]
+      const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
+      if (tcEnv === undefined) throw new Error('Test case environment could not be found')
+      this.progressMeterBatch.incTestcase(tcEnv.name)
+      if (tcEnv.running || singleStep.runOnError) {
+        singleStep.data.push(tc.data[stepId] ?? null)
+        singleStep.environmentTestcase.push(tcEnv)
+      }
+    }
+
+    return !this._shouldStopRun() || singleStep.runOnError ? [singleStep] : []
+  }
+
+  /** Build instances for a normal-type step (one instance per testcase) */
+  private _buildNormalStepInstances(
+    stepId: string,
+    stepCounter: number,
+    stepCount: number,
+    stepDefinition: StepDefinitionInterface
+  ): StepBase[] {
+    if (this.environmentTestcaseIds === undefined || this.environmentTestcaseMap === undefined) {
+      throw new Error('environments are undefined.')
+    }
+    const steps: StepBase[] = []
+    for (let tcCounter = 0; tcCounter < this.testcases.length; tcCounter++) {
+      const step = this._buildNormalStepForTestcase(
+        stepId,
+        stepCounter,
+        stepCount,
+        stepDefinition,
+        tcCounter
+      )
+      if (step !== null) steps.push(step)
+    }
+    return steps
+  }
+
+  /** Build a single normal step instance for one testcase, or null if it should not run */
+  private _buildNormalStepForTestcase(
+    stepId: string,
+    stepCounter: number,
+    stepCount: number,
+    stepDefinition: StepDefinitionInterface,
+    tcCounter: number
+  ): StepNormal | null {
+    if (this.environmentTestcaseIds === undefined || this.environmentTestcaseMap === undefined) {
+      throw new Error('environments are undefined.')
+    }
+    const normalStep: StepNormal = this.stepRegistry.getStep(stepDefinition.id) as StepNormal
+    normalStep.name = stepDefinition.name
+    normalStep.description = stepDefinition.description
+    normalStep.countCurrent = stepCounter + 1
+    normalStep.countAll = stepCount
+    normalStep.testMode = this.testMode
+    normalStep.logAdapter = this.runnerLogAdapter
+    normalStep.environmentRun = this.environmentRun
+
+    const tc = this.testcases[tcCounter]
+    const tcEnvId = this.environmentTestcaseIds[tcCounter]
+    const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
+    if (tcEnv === undefined) throw new Error('The test case Environment could not be found')
+
+    const data = tc.data[stepId]
+    if ((data !== undefined && data !== null) || !normalStep.needData) {
+      this.progressMeterBatch.incTestcase(tcEnv.name)
+      normalStep.environmentTestcase = tcEnv
+      if (
+        (tcEnv.status < STATUS_ERROR && tcEnv.running) ||
+        (normalStep.runOnError && tcEnv.status < STATUS_FATAL)
+      ) {
+        normalStep.data = data
+        return normalStep
+      }
+      return null
+    }
+    this.progressMeterBatch.incTestcase('')
+    return null
+  }
+
+  /** Execute a batch of step instances, applying testcase delay if configured */
+  private async _executeStepBatch(
+    steps: StepBase[],
+    step: StepBase,
+    stepDefinition: StepDefinitionInterface
+  ): Promise<void> {
+    if (steps.length === 0) {
+      // biome-ignore lint/suspicious/noConsole: runner informational output
+      console.log(`No instance of step '${step.name}'`)
+      return
+    }
+
+    const useDelay =
+      stepDefinition.timing &&
+      this.timing?.testcaseDelaySeconds &&
+      this.timing.testcaseDelaySeconds > 0 &&
+      step.type !== StepType.single
+
+    if (useDelay) {
+      const delayMs = (this.timing?.testcaseDelaySeconds ?? 0) * 1000
+      for (let i = 0; i < steps.length; i++) {
+        if (i > 0 && !this.testMode) {
+          await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+        }
+        await this._executeSteps([steps[i]])
+      }
+    } else {
+      await this._executeSteps(steps)
+    }
   }
 
   protected getAllStepIdsForBatchMode(): string[] {
@@ -543,8 +594,7 @@ export class Runner {
     const asyncArray: (() => Promise<void>)[] = []
 
     for (const method of methods) {
-      asyncArray.push(async () => {
-        // eslint-disable-next-line  @typescript-eslint/return-await
+      asyncArray.push(() => {
         return stepInstance.logInfo(`Step ${method}`)
       })
 

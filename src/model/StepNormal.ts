@@ -51,11 +51,7 @@ export class StepNormal extends StepBase {
    * @param opts.ignoreMissing - If true, missing files don't throw
    * @returns true if all loaded successfully
    */
-  async loadVars(
-    varNames: string[],
-    dir: string,
-    opts?: { ignoreMissing?: boolean }
-  ): Promise<boolean> {
+  loadVars(varNames: string[], dir: string, opts?: { ignoreMissing?: boolean }): Promise<boolean> {
     return loadVars(this.tc, varNames, dir, opts)
   }
 
@@ -77,7 +73,7 @@ export class StepNormal extends StepBase {
    * Load variables that will be automatically cleaned up after the step runs.
    * Useful for data that is only needed during this step's execution.
    */
-  async loadTempVars(
+  loadTempVars(
     varNames: string[],
     dir: string,
     opts?: { ignoreMissing?: boolean }
@@ -90,10 +86,11 @@ export class StepNormal extends StepBase {
    * Auto-cleanup of temporary variables. Called by the runner after run().
    * Subclasses that override afterRun should call super.afterRun().
    */
-  async afterRun(): Promise<void> {
+  afterRun(): Promise<void> {
     if (this._tempVarNames.length > 0) {
       deleteVars(this.tc, this._tempVarNames)
       this._tempVarNames = []
     }
+    return Promise.resolve()
   }
 }

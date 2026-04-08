@@ -3,7 +3,7 @@ import { DEFAULT_TIME_FORMAT, LogAdapterConsoleJson } from '../../src/logadapter
 import { getDefaultLogMessage } from './helper'
 
 test('log test case', async () => {
-  console.log = vi.fn() // eslint-disable-line no-console
+  console.log = vi.fn()
 
   const logAdapter = new LogAdapterConsoleJson({ logLevel: 2 })
 
@@ -14,12 +14,12 @@ test('log test case', async () => {
 
   await logAdapter.log(logMessage)
 
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsole: test assertion on console mock
   expect(console.log).toHaveBeenCalledTimes(0)
 })
 
 test('log step', async () => {
-  console.log = vi.fn() // eslint-disable-line no-console
+  console.log = vi.fn()
 
   const logAdapter = new LogAdapterConsoleJson({ logLevel: 2 })
 
@@ -37,12 +37,12 @@ test('log step', async () => {
 
   await logAdapter.log(logMessage)
 
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsole: test assertion on console mock
   expect(console.log).toHaveBeenCalledWith(JSON.stringify(expectedLogMessage))
 })
 
 test('log step, loglevel < loglevel logadapter', async () => {
-  console.log = vi.fn() // eslint-disable-line no-console
+  console.log = vi.fn()
 
   const logAdapter = new LogAdapterConsoleJson({ logLevel: 2 })
 
@@ -52,6 +52,6 @@ test('log step, loglevel < loglevel logadapter', async () => {
 
   await logAdapter.log(logMessage)
 
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsole: test assertion on console mock
   expect(console.log).toHaveBeenCalledTimes(0)
 })
