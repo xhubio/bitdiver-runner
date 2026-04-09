@@ -19,11 +19,6 @@ const testcaseDefinitionSchema = z.object({
   data: z.record(z.string(), z.unknown())
 })
 
-const suiteTimingSchema = z.object({
-  startAfterStep: z.string(),
-  testcaseDelaySeconds: z.number().optional()
-})
-
 const suiteDefinitionSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
@@ -31,8 +26,7 @@ const suiteDefinitionSchema = z.object({
   steps: z.array(z.string()),
   stepDefinitions: z.record(z.string(), stepDefinitionSchema),
   testcases: z.array(testcaseDefinitionSchema),
-  executionMode: z.enum(['batch', 'normal']),
-  timing: suiteTimingSchema.optional()
+  executionMode: z.enum(['batch', 'normal'])
 })
 
 export function validate(value: unknown): SuiteDefinitionInterface {

@@ -54,14 +54,7 @@ const suiteTypeSchema = z.object({
   /** 'auto' = scan testdata files using timedStepMapping */
   timed: z.literal('auto').or(z.array(stepEntrySchema)).default([]),
   /** Steps to run after timed phase. String or { step, ...params }. */
-  teardown: z.array(stepEntrySchema).default([]),
-  /** Optional timing configuration — if set, the Runner manages step timing */
-  timing: z
-    .object({
-      startAfterStep: z.string(),
-      testcaseDelaySeconds: z.number().default(0)
-    })
-    .optional()
+  teardown: z.array(stepEntrySchema).default([])
 })
 
 /** Complete suite configuration */

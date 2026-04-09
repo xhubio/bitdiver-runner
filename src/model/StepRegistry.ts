@@ -1,4 +1,7 @@
 import type { StepBase } from './StepBase'
+import { StepCheckStartTime } from './StepCheckStartTime'
+import { StepDetermineStartTime } from './StepDetermineStartTime'
+import { StepWait } from './StepWait'
 
 type StepClass = new (opts: any) => StepBase
 
@@ -12,10 +15,23 @@ interface RegisterStepRequest {
 
 /**
  * This registry stores all the available steps by there name.
+ *
+ * Built-in steps provided by bitdiver-runner are registered automatically
+ * and can be used without manual registration:
+ * - `Wait` — blocks for a configurable number of seconds
+ * - `DetermineStartTime` — calculates a future reference time for timed steps
+ * - `CheckStartTime` — verifies the reference time has not been exceeded
  */
 export class StepRegistry {
   /** The map storing the step classes by name */
   stepClassMap = new Map()
+
+  constructor() {
+    // Register built-in steps shipped with bitdiver-runner
+    this.stepClassMap.set('Wait', StepWait)
+    this.stepClassMap.set('DetermineStartTime', StepDetermineStartTime)
+    this.stepClassMap.set('CheckStartTime', StepCheckStartTime)
+  }
 
   /**
    * Register a class for a step by a given name

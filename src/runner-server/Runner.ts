@@ -4,7 +4,6 @@ import {
   type ExecutionModeType,
   type StepDefinitionInterface,
   type SuiteDefinitionInterface,
-  type SuiteTimingInterface,
   type TestcaseDefinitionInterface
 } from '../definition/index'
 import {
@@ -21,6 +20,7 @@ import {
   EnvironmentRun,
   EnvironmentTestcase,
   generateLogs,
+  REFERENCE_TIME_KEY,
   STATUS_ERROR,
   STATUS_FATAL,
   STATUS_OK,
@@ -151,12 +151,6 @@ export class Runner {
   /** Log adapter that intercepts step logs for status management */
   private runnerLogAdapter: RunnerLogAdapter
 
-  /** Reference time for timed steps (set after startAfterStep completes), in milliseconds */
-  private referenceTime?: number
-
-  /** Timing configuration from suite */
-  private timing?: SuiteTimingInterface
-
   constructor(opts: RunnerOptions) {
     this.dataDirectory = opts.dataDirectory ? opts.dataDirectory : ''
 
@@ -192,7 +186,6 @@ export class Runner {
     this.stepDefinitions = opts.suite.stepDefinitions
     this.testcases = opts.suite.testcases
     this.executionMode = opts.suite.executionMode
-    this.timing = opts.suite.timing
 
     this._createEnvironments(opts.suite)
   }
@@ -238,37 +231,69 @@ export class Runner {
 
     await this._logStartRun({ testCaseCount, stepCount })
 
-    // iterate test test cases
     for (let tcCounter = 0; tcCounter < testCaseCount; tcCounter++) {
-      const tc = this.testcases[tcCounter]
+      // Each testcase gets a fresh reference time — clear any value set by a
+      // previous testcase so StepDetermineStartTime can start over.
+      this.environmentRun?.map.delete(REFERENCE_TIME_KEY)
 
-      // iterate steps of this particular test case
       for (let stepCounter = 0; stepCounter < stepCountPerTc; stepCounter++) {
-        const stepId = this.stepOrder[stepCounter]
-        const stepDefinition = this.stepDefinitions[stepId]
-
-        const step = this.stepRegistry.getStep(stepDefinition.id)
-        step.name = stepDefinition.name ? stepDefinition.name : stepDefinition.id
-        step.countCurrent = stepCounter + 1
-        step.countAll = stepCountPerTc
-        step.testMode = this.testMode
-        step.logAdapter = this.runnerLogAdapter
-        step.environmentRun = this.environmentRun
-
-        const tcEnvId = this.environmentTestcaseIds[tcCounter]
-        const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
-        step.environmentTestcase = tcEnv
-        step.data = tc.data[stepId] ?? null
-
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        if (!this._shouldStopRun() || tcEnv?.running || step.runOnError) {
-          // OK the step should run
-          await this._executeStepMethodOrdered([step], ['start'])
-          await this._executeStepMethodOrdered([step], ['beforeRun', 'run'])
-          await this._executeStepMethodOrdered([step], ['afterRun'])
-          await this._executeStepMethodOrdered([step], ['end'])
-        }
+        await this._runNormalStep(tcCounter, stepCounter, stepCountPerTc)
       }
+    }
+  }
+
+  /** Execute a single step for a single testcase in normal mode */
+  private async _runNormalStep(
+    tcCounter: number,
+    stepCounter: number,
+    stepCountPerTc: number
+  ): Promise<void> {
+    if (this.environmentTestcaseIds === undefined || this.environmentTestcaseMap === undefined) {
+      throw new Error('environments are undefined.')
+    }
+    const tc = this.testcases[tcCounter]
+    const stepId = this.stepOrder[stepCounter]
+    const stepDefinition = this.stepDefinitions[stepId]
+
+    const step = this.stepRegistry.getStep(stepDefinition.id)
+    step.name = stepDefinition.name ? stepDefinition.name : stepDefinition.id
+    step.countCurrent = stepCounter + 1
+    step.countAll = stepCountPerTc
+    step.testMode = this.testMode
+    step.logAdapter = this.runnerLogAdapter
+    step.environmentRun = this.environmentRun
+
+    const tcEnvId = this.environmentTestcaseIds[tcCounter]
+    const tcEnv = this.environmentTestcaseMap.get(tcEnvId)
+    this._assignNormalStepData(step, tcEnv, tc.data[stepId] ?? null)
+
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    if (this._shouldStopRun() && !tcEnv?.running && !step.runOnError) return
+
+    await this._waitForTimedStep(stepDefinition)
+
+    await this._executeStepMethodOrdered([step], ['start'])
+    await this._executeStepMethodOrdered([step], ['beforeRun', 'run'])
+    await this._executeStepMethodOrdered([step], ['afterRun'])
+    await this._executeStepMethodOrdered([step], ['end'])
+  }
+
+  /**
+   * Assigns environmentTestcase/data on a step instance for normal mode.
+   * Single-steps get a 1-element array so they can uniformly use
+   * `environmentTestcase.length` / `data[0]`.
+   */
+  private _assignNormalStepData(
+    step: StepBase,
+    tcEnv: EnvironmentTestcase | undefined,
+    data: any
+  ): void {
+    if (step.type === StepType.single) {
+      step.environmentTestcase = tcEnv ? [tcEnv] : []
+      step.data = [data]
+    } else {
+      step.environmentTestcase = tcEnv
+      step.data = data
     }
   }
 
@@ -303,25 +328,31 @@ export class Runner {
 
       const steps = this._buildStepInstances(stepId, stepCounter, stepCount, step, stepDefinition)
 
-      await this._executeStepBatch(steps, step, stepDefinition)
-
-      if (this.timing && stepId === this.timing.startAfterStep) {
-        this.referenceTime = Date.now()
-        await this._logInfo(`Reference time set after step '${stepId}'`)
-      }
+      await this._executeSteps(steps)
     }
 
     await this._closeTestcases()
     await this._logEndRun(this._getRunStatus())
   }
 
-  /** Wait for timed step delay if applicable */
+  /**
+   * Wait for timed step delay if applicable.
+   *
+   * Reads the reference time from `environmentRun.map` (set by
+   * {@link StepDetermineStartTime}) and waits until
+   * `referenceTime + offsetSeconds` is reached. If the reference time is not
+   * set or the target time is already in the past, the step runs immediately.
+   */
   private async _waitForTimedStep(stepDefinition: StepDefinitionInterface): Promise<void> {
-    if (stepDefinition.timing && this.referenceTime !== undefined) {
-      const delay = this._calculateTimingDelay(stepDefinition.timing.offsetSeconds)
-      if (delay > 0 && !this.testMode) {
-        await new Promise<void>((resolve) => setTimeout(resolve, delay))
-      }
+    if (!stepDefinition.timing) return
+
+    const referenceTime = this.environmentRun?.map.get(REFERENCE_TIME_KEY) as number | undefined
+    if (referenceTime === undefined) return
+
+    const target = referenceTime + stepDefinition.timing.offsetSeconds * 1000
+    const delay = Math.max(0, target - Date.now())
+    if (delay > 0 && !this.testMode) {
+      await new Promise<void>((resolve) => setTimeout(resolve, delay))
     }
   }
 
@@ -444,37 +475,6 @@ export class Runner {
     return null
   }
 
-  /** Execute a batch of step instances, applying testcase delay if configured */
-  private async _executeStepBatch(
-    steps: StepBase[],
-    step: StepBase,
-    stepDefinition: StepDefinitionInterface
-  ): Promise<void> {
-    if (steps.length === 0) {
-      // biome-ignore lint/suspicious/noConsole: runner informational output
-      console.log(`No instance of step '${step.name}'`)
-      return
-    }
-
-    const useDelay =
-      stepDefinition.timing &&
-      this.timing?.testcaseDelaySeconds &&
-      this.timing.testcaseDelaySeconds > 0 &&
-      step.type !== StepType.single
-
-    if (useDelay) {
-      const delayMs = (this.timing?.testcaseDelaySeconds ?? 0) * 1000
-      for (let i = 0; i < steps.length; i++) {
-        if (i > 0 && !this.testMode) {
-          await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
-        }
-        await this._executeSteps([steps[i]])
-      }
-    } else {
-      await this._executeSteps(steps)
-    }
-  }
-
   protected getAllStepIdsForBatchMode(): string[] {
     return this.stepOrder
   }
@@ -551,6 +551,7 @@ export class Runner {
    *  The instances are the instances per testcase for one real step
    */
   protected async _executeSteps(stepInstances: StepBase[]): Promise<void> {
+    if (stepInstances.length === 0) return
     await this[this.stepExecutionMethod](stepInstances, ['start'])
     await this[this.stepExecutionMethod](stepInstances, ['beforeRun', 'run', 'afterRun'])
     await this[this.stepExecutionMethod](stepInstances, ['end'])
@@ -895,33 +896,5 @@ export class Runner {
       }
     }
     return true
-  }
-
-  /**
-   * Calculate the delay in milliseconds until a timed step should execute.
-   * Returns 0 if referenceTime is not yet set.
-   * @param offsetSeconds - Seconds after the reference time when the step should execute
-   * @returns delay - Milliseconds to wait (minimum 0)
-   */
-  protected _calculateTimingDelay(offsetSeconds: number): number {
-    if (this.referenceTime === undefined) return 0
-    const targetTime = this.referenceTime + offsetSeconds * 1000
-    return Math.max(0, targetTime - Date.now())
-  }
-
-  /**
-   * Logs an info message on the run level (not tied to a specific testcase)
-   * @param message - The message to log
-   */
-  protected async _logInfo(message: string): Promise<void> {
-    if (this.environmentRun === undefined) {
-      throw new Error('The EnvironmentRun is undefined')
-    }
-    await generateLogs({
-      environmentRun: this.environmentRun,
-      logAdapter: this.logAdapter,
-      messageObj: { message },
-      logLevelString: LEVEL_INFO
-    })
   }
 }

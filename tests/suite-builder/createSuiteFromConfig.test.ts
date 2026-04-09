@@ -31,15 +31,6 @@ const sampleConfig = {
       setup: ['SetupStep'],
       timed: [],
       teardown: ['CleanupStep']
-    },
-    TIMED_WITH_CONFIG: {
-      setup: ['SetupStep'],
-      timed: 'auto',
-      teardown: ['CleanupStep'],
-      timing: {
-        startAfterStep: 'SetupStep',
-        testcaseDelaySeconds: 0.2
-      }
     }
   }
 }
@@ -304,29 +295,5 @@ describe('createSuiteFromConfig', () => {
     expect(suite.stepDefinitions.SetupStep.timing).toBeUndefined()
     expect(suite.stepDefinitions.LoginStep.timing).toBeUndefined()
     expect(suite.stepDefinitions.CleanupStep.timing).toBeUndefined()
-  })
-
-  test('suite.timing is set from config when timing is provided', async () => {
-    const suite = await createSuiteFromConfig({
-      config: sampleConfig,
-      suiteType: 'TIMED_WITH_CONFIG',
-      testDataDir: VOLATILE_DIR,
-      suiteName: 'Timed Suite'
-    })
-
-    expect(suite.timing).toBeDefined()
-    expect(suite.timing?.startAfterStep).toBe('SetupStep')
-    expect(suite.timing?.testcaseDelaySeconds).toBe(0.2)
-  })
-
-  test('suite.timing is undefined when not configured', async () => {
-    const suite = await createSuiteFromConfig({
-      config: sampleConfig,
-      suiteType: 'TEST_FIX',
-      testDataDir: VOLATILE_DIR,
-      suiteName: 'My Suite'
-    })
-
-    expect(suite.timing).toBeUndefined()
   })
 })
