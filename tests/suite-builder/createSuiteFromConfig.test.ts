@@ -126,7 +126,6 @@ describe('createSuiteFromConfig', () => {
 
     // Timed steps have data (keys contain spaces — must use bracket notation)
     expect(d01['SendRiFahrtV1Time 1']).toBeDefined()
-    expect(d01['SendRiFahrtV1Time 1'].offsetTime).toBe(1)
     expect(d01['SendRiFahrtV1Time 1'].files).toHaveLength(1)
   })
 

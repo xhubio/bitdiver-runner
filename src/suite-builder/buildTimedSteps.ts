@@ -4,8 +4,8 @@ import type { ParsedFileName, TimedStepMappingEntry } from './types'
 export interface TimedStepEntry {
   /** The step definition (id + unique name) */
   definition: StepDefinitionInterface
-  /** Data per testcase: { [tcName]: { offsetTime, files[] } } */
-  data: { [testcaseName: string]: { offsetTime: number; files: string[] } }
+  /** Data per testcase: { [tcName]: { files[] } } */
+  data: { [testcaseName: string]: { files: string[] } }
 }
 
 /**
@@ -75,10 +75,10 @@ function buildEntryForType(
     timing: { offsetSeconds: time }
   }
 
-  const data: { [tcName: string]: { offsetTime: number; files: string[] } } = {}
+  const data: { [tcName: string]: { files: string[] } } = {}
   for (const file of typeFiles) {
     if (!data[file.testcaseName]) {
-      data[file.testcaseName] = { offsetTime: time, files: [] }
+      data[file.testcaseName] = { files: [] }
     }
     data[file.testcaseName].files.push(file.relativePath)
   }

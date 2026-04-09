@@ -80,7 +80,6 @@ describe('buildTimedSteps', () => {
 
     const data = result[0].data
     expect(data.TC_01).toBeDefined()
-    expect(data.TC_01.offsetTime).toBe(120)
     expect(data.TC_01.files).toEqual(['TC_01/120_ri-fahrt-v1_train1.json'])
     expect(data.TC_02).toBeDefined()
     expect(data.TC_02.files).toEqual(['TC_02/120_ri-fahrt-v1_train2.json'])
