@@ -110,54 +110,65 @@ export class LogAdapterFile extends LogAdapterConsole {
       format: this.timeFormatFileName
     })
 
-    const file = await this._getFileName({
-      targetPath,
-      timeStamp: fileTimeString,
-      logLevel: getLogLevelName(logMessage.logLevel)
-    })
-
     const logMessagePrint: any = structuredClone(logMessage)
     logMessagePrint.meta.logTimeString = metaLogTimeString
     logMessagePrint.meta.run.startString = startTimeString
 
     const fileContent = JSON.stringify(logMessagePrint, null, 2)
 
-    await fs.promises.writeFile(file, fileContent)
+    await this._writeFileExclusive({
+      targetPath,
+      timeStamp: fileTimeString,
+      logLevel: getLogLevelName(logMessage.logLevel),
+      content: fileContent
+    })
   }
 
   /**
-   * Creates a new file name which does not exists. It will try to create a unique name until
-   * it finds one
-   * @param request - The request as defined
-   * @returns fileName - The created file name
+   * Atomically writes `content` to a uniquely-named file in `targetPath`.
+   *
+   * Uses `fs.open` with the `wx` flag (`O_CREAT | O_EXCL`) so concurrent
+   * writers cannot end up targeting the same file. The sequence suffix is
+   * incremented on each collision until a free slot is found, then the
+   * content is written through the exclusive handle.
    */
-  async _getFileName(request: {
+  async _writeFileExclusive(request: {
     targetPath: string[]
     timeStamp: string
     logLevel: string
-  }): Promise<string> {
-    const { targetPath, timeStamp, logLevel } = request
+    content: string
+  }): Promise<void> {
+    const { targetPath, timeStamp, logLevel, content } = request
 
-    let fileName
-    let fileIsOk
     let seq = 0
-    do {
-      if (seq === 0) {
-        fileName = path.join(...targetPath, `${timeStamp}_${logLevel}.json`)
-      } else {
-        fileName = path.join(...targetPath, `${timeStamp}_${seq}_${logLevel}.json`)
-      }
+    // Bounded retry cap to avoid an infinite loop on unexpected errors
+    const maxAttempts = 10_000
+    while (seq < maxAttempts) {
+      const fileName =
+        seq === 0
+          ? path.join(...targetPath, `${timeStamp}_${logLevel}.json`)
+          : path.join(...targetPath, `${timeStamp}_${seq}_${logLevel}.json`)
 
+      let handle: fs.promises.FileHandle | undefined
       try {
-        await fs.promises.access(fileName, fs.constants.F_OK)
-        fileIsOk = false
-      } catch (_e) {
-        fileIsOk = true
+        handle = await fs.promises.open(fileName, 'wx')
+        await handle.writeFile(content)
+        return
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
+          seq++
+          continue
+        }
+        throw err
+      } finally {
+        if (handle !== undefined) {
+          await handle.close()
+        }
       }
+    }
 
-      seq++
-    } while (!fileIsOk)
-
-    return fileName
+    throw new Error(
+      `LogAdapterFile: could not find a free file slot after ${String(maxAttempts)} attempts for '${timeStamp}_${logLevel}'`
+    )
   }
 }
