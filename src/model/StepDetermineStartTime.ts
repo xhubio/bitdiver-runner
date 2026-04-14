@@ -7,7 +7,12 @@ export const REFERENCE_TIME_KEY = 'referenceTime'
  * A single step that calculates a future reference time for timed steps.
  *
  * The reference time is calculated as:
- *   now + offsetSeconds + (activeTestcaseCount * delaySeconds)
+ *   ceil(now + offsetSeconds + (activeTestcaseCount * delaySeconds), 1 minute)
+ *
+ * Rounding up to the next full minute keeps `referenceTime` aligned with
+ * test data that uses minute-granularity (`TIME_CALC_MINUTES` placeholders
+ * and minute-aligned compare offsets), so sent events and expected times
+ * line up exactly.
  *
  * This gives subsequent setup steps a time budget to consume. A
  * {@link StepCheckStartTime} step placed before the timed block verifies that
@@ -45,7 +50,11 @@ export class StepDetermineStartTime extends StepSingle {
     const delaySeconds = params.delaySeconds ?? 0
     const activeCount = this.environmentTestcase?.length ?? 0
 
-    const referenceTime = Date.now() + offsetSeconds * 1000 + activeCount * delaySeconds * 1000
+    const raw = Date.now() + offsetSeconds * 1000 + activeCount * delaySeconds * 1000
+    // Round up to the next full minute so referenceTime lines up with
+    // minute-granularity test data.
+    const oneMinute = 60 * 1000
+    const referenceTime = Math.ceil(raw / oneMinute) * oneMinute
 
     if (this.environmentRun === undefined) {
       throw new Error(`Step '${this.name}': environmentRun is undefined.`)

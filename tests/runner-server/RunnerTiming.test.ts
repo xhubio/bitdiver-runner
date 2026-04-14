@@ -229,10 +229,12 @@ describe('Runner timing — DetermineStartTime calculation', () => {
     const after = Date.now()
 
     const refTime = runner.environmentRun?.map.get(REFERENCE_TIME_KEY) as number
-    // 2 testcases * 0.5s = 1s delay budget + 10s offset = 11s buffer
+    // 2 testcases * 0.5s = 1s delay budget + 10s offset = 11s buffer,
+    // rounded up to the next full minute
     const expectedMin = before + 11_000
-    const expectedMax = after + 11_000
+    const expectedMax = after + 11_000 + 60_000
     expect(refTime).toBeGreaterThanOrEqual(expectedMin)
-    expect(refTime).toBeLessThanOrEqual(expectedMax)
+    expect(refTime).toBeLessThan(expectedMax)
+    expect(refTime % 60_000).toBe(0)
   })
 })

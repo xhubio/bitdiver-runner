@@ -42,8 +42,10 @@ describe('StepDetermineStartTime', () => {
 
     const refTime = envRun.map.get(REFERENCE_TIME_KEY) as number
     expect(typeof refTime).toBe('number')
+    // Rounded up to next full minute, so refTime is within [raw, raw + 60s)
     expect(refTime).toBeGreaterThanOrEqual(before + 10_000)
-    expect(refTime).toBeLessThanOrEqual(after + 10_000)
+    expect(refTime).toBeLessThan(after + 10_000 + 60_000)
+    expect(refTime % 60_000).toBe(0)
   })
 
   test('applies delay per active testcase', async () => {
@@ -57,9 +59,10 @@ describe('StepDetermineStartTime', () => {
     const after = Date.now()
 
     const refTime = envRun.map.get(REFERENCE_TIME_KEY) as number
-    // 4 * 0.5s = 2s
+    // 4 * 0.5s = 2s, rounded up to next full minute
     expect(refTime).toBeGreaterThanOrEqual(before + 2000)
-    expect(refTime).toBeLessThanOrEqual(after + 2000)
+    expect(refTime).toBeLessThan(after + 2000 + 60_000)
+    expect(refTime % 60_000).toBe(0)
   })
 
   test('defaults offset and delay to 0 when omitted', async () => {
@@ -69,9 +72,10 @@ describe('StepDetermineStartTime', () => {
     const after = Date.now()
 
     const refTime = envRun.map.get(REFERENCE_TIME_KEY) as number
-    // no offset, no delay → referenceTime ≈ now
+    // no offset, no delay → referenceTime ≈ now, rounded up to next full minute
     expect(refTime).toBeGreaterThanOrEqual(before)
-    expect(refTime).toBeLessThanOrEqual(after + 10)
+    expect(refTime).toBeLessThan(after + 60_000)
+    expect(refTime % 60_000).toBe(0)
   })
 
   test('combines offset and per-testcase delay', async () => {
@@ -85,8 +89,9 @@ describe('StepDetermineStartTime', () => {
     const after = Date.now()
 
     const refTime = envRun.map.get(REFERENCE_TIME_KEY) as number
-    // 40s + 10 * 0.3s = 43s
+    // 40s + 10 * 0.3s = 43s, rounded up to next full minute
     expect(refTime).toBeGreaterThanOrEqual(before + 43_000)
-    expect(refTime).toBeLessThanOrEqual(after + 43_000)
+    expect(refTime).toBeLessThan(after + 43_000 + 60_000)
+    expect(refTime % 60_000).toBe(0)
   })
 })
