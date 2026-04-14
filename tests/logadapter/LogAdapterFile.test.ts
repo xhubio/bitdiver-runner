@@ -45,7 +45,7 @@ test('Log Message Run', async () => {
     files[i] = path.relative(LOG_PATH, files[i])
   }
 
-  expect(files).toEqual([`${suiteName}/${fileName}_error.json`])
+  expect(files).toEqual([`${suiteName}/${fileName}_01_error.json`])
 })
 
 test('Log Message Testcase', async () => {
@@ -82,7 +82,7 @@ test('Log Message Testcase', async () => {
     files[i] = path.relative(LOG_PATH, files[i])
   }
 
-  expect(files).toEqual([`${suiteName}/TC_2_testcaseName_4/${fileName}_error.json`])
+  expect(files).toEqual([`${suiteName}/TC_2_testcaseName_4/${fileName}_01_error.json`])
 })
 
 test('Log Message Step', async () => {
@@ -118,6 +118,6 @@ test('Log Message Step', async () => {
   }
 
   expect(files).toEqual([
-    `${suiteName}/TC_2_testcaseName_4/Step_1_stepName_1/${fileName}_error.json`
+    `${suiteName}/TC_2_testcaseName_4/Step_1_stepName_1/${fileName}_01_error.json`
   ])
 })

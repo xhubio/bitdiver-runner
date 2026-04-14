@@ -140,14 +140,14 @@ export class LogAdapterFile extends LogAdapterConsole {
   }): Promise<void> {
     const { targetPath, timeStamp, logLevel, content } = request
 
-    let seq = 0
+    let seq = 1
     // Bounded retry cap to avoid an infinite loop on unexpected errors
     const maxAttempts = 10_000
-    while (seq < maxAttempts) {
-      const fileName =
-        seq === 0
-          ? path.join(...targetPath, `${timeStamp}_${logLevel}.json`)
-          : path.join(...targetPath, `${timeStamp}_${seq}_${logLevel}.json`)
+    while (seq <= maxAttempts) {
+      // Always include a zero-padded sequence number so files written within
+      // the same timestamp sort in the order they were produced.
+      const seqStr = String(seq).padStart(2, '0')
+      const fileName = path.join(...targetPath, `${timeStamp}_${seqStr}_${logLevel}.json`)
 
       let handle: fs.promises.FileHandle | undefined
       try {
