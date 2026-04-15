@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import type {
   StepDefinitionInterface,
   SuiteDefinitionInterface,
@@ -65,7 +66,14 @@ export async function createSuiteFromConfig(
   }
 
   // Phase 1: Setup steps
-  addPhaseSteps(typeConfig.setup, stepDefinitions, stepOrder, tcDataMap, testcaseNames)
+  await addPhaseSteps(
+    typeConfig.setup,
+    stepDefinitions,
+    stepOrder,
+    tcDataMap,
+    testcaseNames,
+    testDataDir
+  )
 
   // Phase 2: Timed steps
   if (typeConfig.timed === 'auto') {
@@ -88,7 +96,14 @@ export async function createSuiteFromConfig(
   }
 
   // Phase 3: Teardown steps
-  addPhaseSteps(typeConfig.teardown, stepDefinitions, stepOrder, tcDataMap, testcaseNames)
+  await addPhaseSteps(
+    typeConfig.teardown,
+    stepDefinitions,
+    stepOrder,
+    tcDataMap,
+    testcaseNames,
+    testDataDir
+  )
 
   // Assemble testcases
   const testcases: TestcaseDefinitionInterface[] = testcaseNames.map((tcName) => ({
@@ -107,34 +122,68 @@ export async function createSuiteFromConfig(
 
 /**
  * Process a list of step entries (String or { step, ...params }) and add them to the suite.
- * Object entries have their params written as step data for ALL testcases.
+ *
+ * - String entry → step name only, no data.
+ * - Object entry `{ step, ...params }` → params written as step data for ALL testcases.
+ * - Object entry with `filePattern` → the pattern is resolved per testcase: the
+ *   builder scans `<testDataDir>/<tcName>/` for files matching the regex and
+ *   injects `{ files: [...], ...otherParams }` as step data for that testcase.
+ *   Files are returned as relative paths (`<tcName>/<fileName>`) so the step
+ *   can resolve them against `DIR_TEST_DATA`. `filePattern` itself is consumed
+ *   by the builder and not forwarded to the step.
  */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: straightforward step processing
-function addPhaseSteps(
+async function addPhaseSteps(
   entries: StepEntry[],
   stepDefinitions: { [key: string]: StepDefinitionInterface },
   stepOrder: string[],
   tcDataMap: Map<string, Record<string, unknown>>,
-  testcaseNames: string[]
-): void {
+  testcaseNames: string[],
+  testDataDir: string
+): Promise<void> {
   for (const entry of entries) {
     if (typeof entry === 'string') {
       // Simple step name, no data
       stepDefinitions[entry] = { id: entry, name: entry, description: '' }
       stepOrder.push(entry)
-    } else {
-      // Object with { step, ...params }
-      const { step: stepId, ...params } = entry as { step: string; [key: string]: unknown }
-      stepDefinitions[stepId] = { id: stepId, name: stepId, description: '' }
-      stepOrder.push(stepId)
+      continue
+    }
 
-      // Write params as step data for all testcases
-      if (Object.keys(params).length > 0) {
-        for (const tcName of testcaseNames) {
-          const tcData = tcDataMap.get(tcName)
-          if (tcData) {
-            tcData[stepId] = params
-          }
+    // Object with { step, ...params }
+    const { step: stepId, ...params } = entry as { step: string; [key: string]: unknown }
+    stepDefinitions[stepId] = { id: stepId, name: stepId, description: '' }
+    stepOrder.push(stepId)
+
+    const filePattern = typeof params.filePattern === 'string' ? params.filePattern : undefined
+    if (filePattern !== undefined) {
+      const { filePattern: _ignored, ...otherParams } = params
+      const regex = new RegExp(filePattern)
+      for (const tcName of testcaseNames) {
+        const tcDir = path.join(testDataDir, tcName)
+        let dirEntries: string[]
+        try {
+          dirEntries = await fs.readdir(tcDir)
+        } catch {
+          dirEntries = []
+        }
+        const files = dirEntries
+          .filter((e) => regex.test(e))
+          .sort()
+          .map((e) => path.join(tcName, e))
+        const tcData = tcDataMap.get(tcName)
+        if (tcData) {
+          tcData[stepId] = { files, ...otherParams }
+        }
+      }
+      continue
+    }
+
+    // Write params as step data for all testcases
+    if (Object.keys(params).length > 0) {
+      for (const tcName of testcaseNames) {
+        const tcData = tcDataMap.get(tcName)
+        if (tcData) {
+          tcData[stepId] = params
         }
       }
     }

@@ -295,4 +295,39 @@ describe('createSuiteFromConfig', () => {
     expect(suite.stepDefinitions.LoginStep.timing).toBeUndefined()
     expect(suite.stepDefinitions.CleanupStep.timing).toBeUndefined()
   })
+
+  test('setup step with filePattern resolves to per-testcase files', async () => {
+    const configWithPattern = {
+      name: 'Pattern Suite',
+      timedStepMapping: {},
+      suiteTypes: {
+        TEST_PATTERN: {
+          setup: [{ step: 'SendRiFahrtV1', filePattern: '^ri-fahrt-v1_\\d+_.*\\.json$' }],
+          timed: [],
+          teardown: []
+        }
+      }
+    }
+
+    const tcDir = path.join(VOLATILE_DIR, 'TC_01')
+    await writeJson(path.join(tcDir, 'ri-fahrt-v1_15003_RB41.json'), { fn: 15003 })
+    await writeJson(path.join(tcDir, 'ri-fahrt-v1_15009_RB42.json'), { fn: 15009 })
+
+    const suite = await createSuiteFromConfig({
+      config: configWithPattern,
+      suiteType: 'TEST_PATTERN',
+      testDataDir: VOLATILE_DIR,
+      suiteName: 'Pattern Run'
+    })
+
+    const tc1 = suite.testcases.find((t) => t.name === 'TC_01')
+    expect(tc1).toBeDefined()
+    const stepData = tc1?.data.SendRiFahrtV1 as { files: string[]; filePattern?: string }
+    expect(stepData).toBeDefined()
+    expect(stepData.filePattern).toBeUndefined()
+    expect(stepData.files).toContain(path.join('TC_01', 'ri-fahrt-v1_15003_RB41.json'))
+    expect(stepData.files).toContain(path.join('TC_01', 'ri-fahrt-v1_15009_RB42.json'))
+    // Files already captured by the timed scan (e.g. 1_ri-fahrt-v1_train_A.json)
+    // are intentionally not excluded — the pattern itself is the filter.
+  })
 })
