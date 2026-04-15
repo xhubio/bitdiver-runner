@@ -39,32 +39,28 @@ interface GenerateLogsRequest {
  * @param request - The request as defined in @see GenerateLogsRequest
  */
 export async function generateLogs(request: GenerateLogsRequest): Promise<void> {
-  const {
-    environmentRun,
-    environmentTestcase,
-    logAdapter,
-    messageObj,
-    logLevelString,
-    step,
-    source
-  } = request
+  const { logAdapter, environmentTestcase } = request
+  const logMessage = buildBaseLogMessage(request)
+  const promises: Array<Promise<unknown>> = []
 
-  // The base data object
-  let data: any = {}
-
-  if (messageObj instanceof Error) {
-    data = {
-      message: messageObj.message,
-      stack: messageObj.stack
-    }
-  } else if (typeof messageObj === 'string') {
-    data = { message: messageObj }
+  if (environmentTestcase === undefined) {
+    promises.push(logAdapter.log(logMessage))
+  } else if (!Array.isArray(environmentTestcase)) {
+    attachTcMeta(logMessage, environmentTestcase)
+    promises.push(logAdapter.log(logMessage))
   } else {
-    data = messageObj
+    emitForTestcaseArray(logMessage, environmentTestcase, request, logAdapter, promises)
   }
 
+  await Promise.all(promises)
+}
+
+/** Build the base LogMessage shared by every emit path. */
+function buildBaseLogMessage(request: GenerateLogsRequest): LogMessageInterface {
+  const { environmentRun, messageObj, logLevelString, step, source } = request
+
   const logMessage: LogMessageInterface = {
-    data,
+    data: normalizeMessageData(messageObj),
     logLevel: logLevelString,
     meta: {
       run: {
@@ -79,67 +75,73 @@ export async function generateLogs(request: GenerateLogsRequest): Promise<void> 
   if (source !== undefined) {
     logMessage.meta.source = source
   }
-
   if (step !== undefined) {
     logMessage.meta.step = {
       stepCountAll: step.countAll,
       stepCountCurrent: step.countCurrent,
-
       id: step.stepInstanceId,
       name: step.name,
       type: step.type
     }
   }
-  const promises = []
-  if (environmentTestcase !== undefined) {
-    // ----------------------------------------------
-    // For a normal step the log will be written just once
-    // ----------------------------------------------
-    if (!Array.isArray(environmentTestcase)) {
-      logMessage.meta.tc = {
-        tcCountAll: environmentTestcase.countAll,
-        tcCountCurrent: environmentTestcase.countCurrent,
-        id: environmentTestcase.id,
-        name: environmentTestcase.name
-      }
-      promises.push(logAdapter.log(logMessage))
-    } else {
-      // ----------------------------------------------
-      // Single step with multiple testcases.
-      //
-      // For error/fatal levels we write a single run-level entry whose
-      // `source.testcases` lists every affected testcase — a SingleStep
-      // failure isn't a per-testcase event.
-      //
-      // For info/debug/warning we keep a log per testcase so the per-TC
-      // view still shows the step's lifecycle output.
-      // ----------------------------------------------
-      const collapseToRunLevel =
-        logLevelString === 'error' || logLevelString === 'fatal'
 
-      if (collapseToRunLevel) {
-        logMessage.meta.source = {
-          ...(logMessage.meta.source ?? {}),
-          testcases: environmentTestcase.map((tc) => tc.name),
-          stepName: step?.name ?? logMessage.meta.source?.stepName,
-          isSingleStep: true
-        }
-        promises.push(logAdapter.log(logMessage))
-      } else {
-        for (const tcEnv of environmentTestcase) {
-          logMessage.meta.tc = {
-            tcCountAll: tcEnv.countAll,
-            tcCountCurrent: tcEnv.countCurrent,
-            id: tcEnv.id,
-            name: tcEnv.name
-          }
-          promises.push(logAdapter.log(logMessage))
-        }
-      }
+  return logMessage
+}
+
+/** Normalise an arbitrary message (string / Error / object) into the data shape. */
+function normalizeMessageData(messageObj: unknown): any {
+  if (messageObj instanceof Error) {
+    return { message: messageObj.message, stack: messageObj.stack }
+  }
+  if (typeof messageObj === 'string') {
+    return { message: messageObj }
+  }
+  return messageObj
+}
+
+/** Attach testcase metadata to the log message. */
+function attachTcMeta(logMessage: LogMessageInterface, tc: EnvironmentTestcase): void {
+  logMessage.meta.tc = {
+    tcCountAll: tc.countAll,
+    tcCountCurrent: tc.countCurrent,
+    id: tc.id,
+    name: tc.name
+  }
+}
+
+/**
+ * SingleStep with multiple testcases.
+ *
+ * For error/fatal levels: one run-level entry whose `source.testcases`
+ * lists every affected testcase — a SingleStep failure isn't a per-TC
+ * event.
+ *
+ * For info/debug/warning: one log per testcase so the per-TC view still
+ * shows the step's lifecycle output.
+ */
+function emitForTestcaseArray(
+  logMessage: LogMessageInterface,
+  tcs: EnvironmentTestcase[],
+  request: GenerateLogsRequest,
+  logAdapter: LogAdapterInterface,
+  promises: Array<Promise<unknown>>
+): void {
+  const collapseToRunLevel =
+    request.logLevelString === 'error' || request.logLevelString === 'fatal'
+
+  if (collapseToRunLevel) {
+    logMessage.meta.source = {
+      ...(logMessage.meta.source ?? {}),
+      testcases: tcs.map((tc) => tc.name),
+      stepName: request.step?.name ?? logMessage.meta.source?.stepName,
+      isSingleStep: true
     }
-  } else {
     promises.push(logAdapter.log(logMessage))
+    return
   }
 
-  await Promise.all(promises)
+  for (const tc of tcs) {
+    attachTcMeta(logMessage, tc)
+    promises.push(logAdapter.log(logMessage))
+  }
 }

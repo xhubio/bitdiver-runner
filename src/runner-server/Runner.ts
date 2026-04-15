@@ -754,54 +754,72 @@ export class Runner {
       throw new Error('environments are undefined.')
     }
 
-    const logLevel = logMessage.logLevel
-    const promises = []
-    const status = this._getStatusForLoglevel(logLevel as string)
+    const status = this._getStatusForLoglevel(logMessage.logLevel as string)
+    const promises: Array<Promise<unknown>> = []
 
     if (logMessage.meta.tc) {
-      // --------- Normal-step log: one testcase scope ---------
-      const envTc = this.environmentTestcaseMap.get(logMessage.meta.tc.id)
-      if (envTc === undefined) {
-        throw new Error('The test case envrionment could not be found')
-      }
-
-      if (status >= STATUS_ERROR) {
-        promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
-        promises.push(
-          this.setRunFail(logMessage.data, status, {
-            testcaseName: envTc.name,
-            stepName: logMessage.meta.step?.name,
-            stepType: logMessage.meta.step?.type
-          })
-        )
-      } else {
-        envTc.status = status
-      }
+      this._handleNormalLog(logMessage, status, promises)
     } else if (logMessage.meta.source?.testcases) {
-      // --------- Single-step log: covers multiple testcases at once ---------
-      const tcNames = logMessage.meta.source.testcases
-      if (status >= STATUS_ERROR) {
-        this.environmentRun!.status = status
-        for (const envTc of this.environmentTestcaseMap.values()) {
-          if (tcNames.includes(envTc.name)) {
-            promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
-          }
-        }
-      } else {
-        for (const envTc of this.environmentTestcaseMap.values()) {
-          if (tcNames.includes(envTc.name) && envTc.status < status) {
-            envTc.status = status
-          }
-        }
-      }
+      this._handleSingleStepLog(logMessage, status, promises)
     } else {
       throw new Error('Log message from step is missing testcase metadata')
     }
 
-    // Now call the logger
     promises.push(this.logAdapter.log(logMessage))
-
     await Promise.all(promises)
+  }
+
+  /** Log scoped to a single testcase (Normal-step). */
+  private _handleNormalLog(
+    logMessage: LogMessageInterface,
+    status: number,
+    promises: Array<Promise<unknown>>
+  ): void {
+    const envTc = this.environmentTestcaseMap?.get(logMessage.meta.tc?.id ?? '')
+    if (envTc === undefined) {
+      throw new Error('The test case envrionment could not be found')
+    }
+
+    if (status >= STATUS_ERROR) {
+      promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
+      promises.push(
+        this.setRunFail(logMessage.data, status, {
+          testcaseName: envTc.name,
+          stepName: logMessage.meta.step?.name,
+          stepType: logMessage.meta.step?.type
+        })
+      )
+    } else {
+      envTc.status = status
+    }
+  }
+
+  /** Log covering every testcase listed in `meta.source.testcases` (SingleStep). */
+  private _handleSingleStepLog(
+    logMessage: LogMessageInterface,
+    status: number,
+    promises: Array<Promise<unknown>>
+  ): void {
+    const tcNames = logMessage.meta.source?.testcases ?? []
+    const affected = [...(this.environmentTestcaseMap?.values() ?? [])].filter((envTc) =>
+      tcNames.includes(envTc.name)
+    )
+
+    if (status >= STATUS_ERROR) {
+      if (this.environmentRun !== undefined) {
+        this.environmentRun.status = status
+      }
+      for (const envTc of affected) {
+        promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
+      }
+      return
+    }
+
+    for (const envTc of affected) {
+      if (envTc.status < status) {
+        envTc.status = status
+      }
+    }
   }
 
   /**
