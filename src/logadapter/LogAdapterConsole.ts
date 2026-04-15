@@ -75,14 +75,15 @@ export class LogAdapterConsole implements LogAdapterInterface {
   async _writeLog(logMessage: LogMessageInterface): Promise<void> {
     const meta = logMessage.meta
 
-    if (meta.step !== undefined) {
-      // this is a step log
+    if (meta.step !== undefined && meta.tc !== undefined) {
+      // This is a step log scoped to a single testcase
       return await this._logStep(logMessage)
     } else if (meta.tc !== undefined) {
-      // This is a testcase log
+      // This is a testcase-level log (no step scope)
       return await this._logTestcase(logMessage)
     }
-    // This is a run log
+    // This is a run-level log (SingleStep collapsed logs land here,
+    // carrying meta.step + meta.source.testcases for context)
     return await this._logRun(logMessage)
   }
 

@@ -105,17 +105,36 @@ export async function generateLogs(request: GenerateLogsRequest): Promise<void> 
       promises.push(logAdapter.log(logMessage))
     } else {
       // ----------------------------------------------
-      // For Single step the log will be written for each testcase environment
+      // Single step with multiple testcases.
+      //
+      // For error/fatal levels we write a single run-level entry whose
+      // `source.testcases` lists every affected testcase — a SingleStep
+      // failure isn't a per-testcase event.
+      //
+      // For info/debug/warning we keep a log per testcase so the per-TC
+      // view still shows the step's lifecycle output.
       // ----------------------------------------------
+      const collapseToRunLevel =
+        logLevelString === 'error' || logLevelString === 'fatal'
 
-      for (const tcEnv of environmentTestcase) {
-        logMessage.meta.tc = {
-          tcCountAll: tcEnv.countAll,
-          tcCountCurrent: tcEnv.countCurrent,
-          id: tcEnv.id,
-          name: tcEnv.name
+      if (collapseToRunLevel) {
+        logMessage.meta.source = {
+          ...(logMessage.meta.source ?? {}),
+          testcases: environmentTestcase.map((tc) => tc.name),
+          stepName: step?.name ?? logMessage.meta.source?.stepName,
+          isSingleStep: true
         }
         promises.push(logAdapter.log(logMessage))
+      } else {
+        for (const tcEnv of environmentTestcase) {
+          logMessage.meta.tc = {
+            tcCountAll: tcEnv.countAll,
+            tcCountCurrent: tcEnv.countCurrent,
+            id: tcEnv.id,
+            name: tcEnv.name
+          }
+          promises.push(logAdapter.log(logMessage))
+        }
       }
     }
   } else {

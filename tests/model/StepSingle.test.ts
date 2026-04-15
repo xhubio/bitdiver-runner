@@ -94,28 +94,16 @@ test('Logging: warning', async () => {
 test('Logging: error', async () => {
   const step = await getStep()
   await step.logError('myError')
+  // error/fatal from a SingleStep collapse to a single run-level entry
   expect(logAdapterMemory.logs).toEqual({
     myRunId: {
-      logs: [],
-      testcases: {
-        myTcName: {
-          countAll: 12,
-          countCurrent: 2,
-          logs: [],
-          steps: {
-            myStep: {
-              logs: [
-                {
-                  countCurrent: 3,
-                  countAll: 15,
-                  data: { message: 'myError' },
-                  logLevel: 'error'
-                }
-              ]
-            }
-          }
+      logs: [
+        {
+          data: { message: 'myError' },
+          logLevel: 'error'
         }
-      }
+      ],
+      testcases: {}
     }
   })
 })
@@ -125,26 +113,13 @@ test('Logging: fatal', async () => {
   await step.logFatal('myError')
   expect(logAdapterMemory.logs).toEqual({
     myRunId: {
-      logs: [],
-      testcases: {
-        myTcName: {
-          countAll: 12,
-          countCurrent: 2,
-          logs: [],
-          steps: {
-            myStep: {
-              logs: [
-                {
-                  countCurrent: 3,
-                  countAll: 15,
-                  data: { message: 'myError' },
-                  logLevel: 'fatal'
-                }
-              ]
-            }
-          }
+      logs: [
+        {
+          data: { message: 'myError' },
+          logLevel: 'fatal'
         }
-      }
+      ],
+      testcases: {}
     }
   })
 })

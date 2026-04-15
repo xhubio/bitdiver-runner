@@ -758,26 +758,44 @@ export class Runner {
     const promises = []
     const status = this._getStatusForLoglevel(logLevel as string)
 
-    if (!logMessage.meta.tc) {
-      throw new Error('Log message from step is missing testcase metadata')
-    }
-    const envTc = this.environmentTestcaseMap.get(logMessage.meta.tc.id)
-    if (envTc === undefined) {
-      throw new Error('The test case envrionment could not be found')
-    }
+    if (logMessage.meta.tc) {
+      // --------- Normal-step log: one testcase scope ---------
+      const envTc = this.environmentTestcaseMap.get(logMessage.meta.tc.id)
+      if (envTc === undefined) {
+        throw new Error('The test case envrionment could not be found')
+      }
 
-    if (status >= STATUS_ERROR) {
-      // there is an error. The status must be set
-      promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
-      promises.push(
-        this.setRunFail(logMessage.data, status, {
-          testcaseName: envTc.name,
-          stepName: logMessage.meta.step?.name,
-          stepType: logMessage.meta.step?.type
-        })
-      )
+      if (status >= STATUS_ERROR) {
+        promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
+        promises.push(
+          this.setRunFail(logMessage.data, status, {
+            testcaseName: envTc.name,
+            stepName: logMessage.meta.step?.name,
+            stepType: logMessage.meta.step?.type
+          })
+        )
+      } else {
+        envTc.status = status
+      }
+    } else if (logMessage.meta.source?.testcases) {
+      // --------- Single-step log: covers multiple testcases at once ---------
+      const tcNames = logMessage.meta.source.testcases
+      if (status >= STATUS_ERROR) {
+        this.environmentRun!.status = status
+        for (const envTc of this.environmentTestcaseMap.values()) {
+          if (tcNames.includes(envTc.name)) {
+            promises.push(this.setTestcaseFail(envTc, logMessage.data, status))
+          }
+        }
+      } else {
+        for (const envTc of this.environmentTestcaseMap.values()) {
+          if (tcNames.includes(envTc.name) && envTc.status < status) {
+            envTc.status = status
+          }
+        }
+      }
     } else {
-      envTc.status = status
+      throw new Error('Log message from step is missing testcase metadata')
     }
 
     // Now call the logger
