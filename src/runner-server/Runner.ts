@@ -82,6 +82,14 @@ interface RunnerOptions {
    * production mode
    */
   testMode?: boolean
+
+  /**
+   * Additional key/value entries injected into `environmentRun.map` when the
+   * run environment is created. Applied after `DIR_BASE_DATA` so callers can
+   * override it. Intended for framework-config-derived values that steps read
+   * but that live outside the runner (e.g. data repo name, data dir name).
+   */
+  initialEnvironmentMap?: Record<string, unknown>
 }
 
 /**
@@ -148,6 +156,9 @@ export class Runner {
    */
   testMode = false
 
+  /** Extra entries injected into environmentRun.map at creation time */
+  private initialEnvironmentMap?: Record<string, unknown>
+
   /** Log adapter that intercepts step logs for status management */
   private runnerLogAdapter: RunnerLogAdapter
 
@@ -186,6 +197,8 @@ export class Runner {
     this.stepDefinitions = opts.suite.stepDefinitions
     this.testcases = opts.suite.testcases
     this.executionMode = opts.suite.executionMode
+
+    this.initialEnvironmentMap = opts.initialEnvironmentMap
 
     this._createEnvironments(opts.suite)
   }
@@ -651,6 +664,11 @@ export class Runner {
     envRun.name = suite.name
     envRun.description = suite.description
     envRun.map.set(DIR_BASE_DATA, this.dataDirectory)
+    if (this.initialEnvironmentMap !== undefined) {
+      for (const [key, value] of Object.entries(this.initialEnvironmentMap)) {
+        envRun.map.set(key, value)
+      }
+    }
     this.environmentRun = envRun
 
     const tcCountAll = suite.testcases.length

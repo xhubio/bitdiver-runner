@@ -15,6 +15,28 @@ const registry = createRegistry()
 logAdapter.level = 0
 
 test(
+  'initialEnvironmentMap entries are copied into environmentRun.map',
+  () => {
+    const suiteDefinition = createSuite({})
+    const runner = new Runner({
+      stepRegistry: registry,
+      logAdapter: logAdapterFile,
+      parallelExecution: true,
+      dataDirectory: '',
+      id: 'mapInitTest',
+      suite: suiteDefinition,
+      initialEnvironmentMap: {
+        dataRepoName: 'my-data-repo',
+        dataDirName: 'my-data-dir'
+      }
+    })
+    expect(runner.environmentRun?.map.get('dataRepoName')).toBe('my-data-repo')
+    expect(runner.environmentRun?.map.get('dataDirName')).toBe('my-data-dir')
+  },
+  TIMEOUT
+)
+
+test(
   'Run with file logAdapter',
   async () => {
     const options = {
