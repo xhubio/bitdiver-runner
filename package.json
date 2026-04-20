@@ -28,7 +28,7 @@
     "luxon": "3.7.2",
     "md5": "2.3.0",
     "ts-progress": "0.1.9",
-    "uuid": "13.0.0",
+    "uuid": "14.0.0",
     "zod": "4.3.6"
   },
   "devDependencies": {
